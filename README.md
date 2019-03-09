@@ -1,4 +1,4 @@
-# bolt
+# Bolt
 
 A new Flutter project.
 
