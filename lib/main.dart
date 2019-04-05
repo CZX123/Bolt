@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'settings.dart';
 
 void main() => runApp(AppTheme());
 
@@ -28,12 +29,14 @@ class AppThemeState extends State<AppTheme> {
   // 1 for dark theme
   // 2 for black theme
   final ThemeData _lightTheme = ThemeData(
+    fontFamily: 'Orkney',
     brightness: Brightness.light,
     primarySwatch: Colors.indigo,
     accentColor: Colors.yellowAccent,
     scaffoldBackgroundColor: Colors.grey[50],
   );
   final ThemeData _darkTheme = ThemeData(
+    fontFamily: 'Orkney',
     brightness: Brightness.dark,
     primarySwatch: Colors.deepPurple,
     accentColor: Colors.orangeAccent,
@@ -43,6 +46,7 @@ class AppThemeState extends State<AppTheme> {
     ),
   );
   final ThemeData _blackTheme = ThemeData(
+    fontFamily: 'Orkney',
     brightness: Brightness.dark,
     primarySwatch: Colors.teal,
     accentColor: Colors.redAccent,
@@ -78,45 +82,75 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  double top = 0;
+
   void changeTheme(int newThemeCode) {
     AppTheme.of(context).changeTheme(newThemeCode);
   }
 
   @override
   Widget build(BuildContext context) {
-    int themeCode = AppTheme.of(context).themeCode;
+    int _themeCode = AppTheme.of(context).themeCode;
     String currentTheme =
-        themeCode == 0 ? 'light' : themeCode == 1 ? 'dark' : 'black';
+        _themeCode == 0 ? 'light' : _themeCode == 1 ? 'dark' : 'black';
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Bolt'),
-      ),
-      body: Center(
-        child: Text('This is the $currentTheme theme!'),
-      ),
-      drawer: Drawer(
-        child: ListView(
-          children: <Widget>[
-            RadioListTile<int>(
-              title: Text('Light Theme'),
-              value: 0,
-              groupValue: themeCode,
-              onChanged: changeTheme,
+      body: CustomScrollView(
+        slivers: <Widget>[
+          SliverAppBar(
+            expandedHeight: 128.0,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text(
+                'Bolt',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
-            RadioListTile<int>(
-              title: Text('Dark Theme'),
-              value: 1,
-              groupValue: themeCode,
-              onChanged: changeTheme,
+            actions: <Widget>[
+              IconButton(
+                icon: const Icon(Icons.settings),
+                tooltip: 'Settings',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => SettingsScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
+          SliverList(
+            delegate: SliverChildListDelegate(
+              <Widget>[
+                Padding(
+                  padding: EdgeInsets.fromLTRB(72.0, 24.0, 72.0, 8.0),
+                  child: Text(
+                    'This is the $currentTheme theme!',
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                  child: const Text(
+                    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quis mauris vel quam tempor luctus ac id est. Phasellus nibh metus, iaculis id elit vitae, efficitur pretium elit. In quis porttitor mauris, ac commodo eros. Suspendisse elit sapien, iaculis quis fermentum vitae, luctus eget diam. Suspendisse pretium ex vitae libero facilisis lacinia. Cras dictum purus at sapien consectetur consectetur. Aenean diam lectus, dapibus blandit erat vel, lobortis tempor leo.',
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                  child: const Text(
+                    'Aenean finibus ex lectus, eget luctus erat tincidunt et. Etiam at sollicitudin est. Mauris sagittis viverra ullamcorper. Fusce porta posuere odio. Vivamus ac semper mi. Quisque porttitor velit id auctor tincidunt. Sed sagittis nunc vel lorem viverra, vel tincidunt ipsum finibus. Cras fermentum fermentum iaculis. Donec eget interdum sapien. Sed a neque auctor, varius quam ut, tempus nibh. Nunc in arcu eros. Suspendisse potenti. Aenean consequat, erat id vehicula varius, quam lectus vehicula orci, sed lacinia diam dolor varius elit. In id enim ut diam porttitor lacinia. Proin et ultricies elit, ac faucibus urna. Pellentesque cursus ullamcorper velit, vitae dapibus sem venenatis vel.',
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                  child: const Text(
+                    'Suspendisse venenatis ligula et lectus suscipit, sit amet tempus sem fermentum. Fusce efficitur dictum ornare. Morbi nisl ipsum, hendrerit tincidunt efficitur eget, congue a nisi. Nullam scelerisque iaculis tellus non commodo. In id turpis orci. Etiam non maximus ex, in accumsan tortor. Fusce eget tempor felis, id elementum orci. Vivamus pretium dapibus eros, efficitur iaculis nibh lobortis nec. Maecenas mattis nec tellus sit amet efficitur. Proin eu dapibus nulla, mattis semper lectus. Pellentesque interdum enim eu lacus malesuada dictum eget eget sem. Aliquam in tristique felis. Donec ac imperdiet lectus, eu mattis lectus. Maecenas eu elementum enim, sed viverra ex.',
+                  ),
+                ),
+              ],
             ),
-            RadioListTile<int>(
-              title: Text('Black Theme'),
-              value: 2,
-              groupValue: themeCode,
-              onChanged: changeTheme,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.add),
