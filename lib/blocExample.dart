@@ -113,7 +113,7 @@ class ThemeBloc extends Bloc<ThemeEvent, int> {
   int get initialState => 0;
 
   @override
-  Stream<int> mapEventToState(int currentState, ThemeEvent event) async* {
+  Stream<int> mapEventToState(ThemeEvent event) async* {
     switch (event) {
       case ThemeEvent.decrement:
         yield currentState - 1;
