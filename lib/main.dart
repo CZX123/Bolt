@@ -122,65 +122,9 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
-  double top = 0;
   TabController _tabController;
 
-  Widget tabContent = Builder(
-    builder: (context) {
-      return SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            SizedBox(
-              height: MediaQuery.of(context).padding.top,
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 24.0, 72.0, 8.0),
-              child: const Text(
-                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quis mauris vel quam tempor luctus ac id est. Phasellus nibh metus, iaculis id elit vitae, efficitur pretium elit. In quis porttitor mauris, ac commodo eros. Suspendisse elit sapien, iaculis quis fermentum vitae, luctus eget diam. Suspendisse pretium ex vitae libero facilisis lacinia. Cras dictum purus at sapien consectetur consectetur. Aenean diam lectus, dapibus blandit erat vel, lobortis tempor leo.',
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-              child: Text(
-                'These are some big words.',
-                style: Theme.of(context).textTheme.display1,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-              child: Text(
-                'And a heading',
-                style: Theme.of(context).textTheme.display2,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-              child: Text(
-                'And another heading',
-                style: Theme.of(context).textTheme.display3,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-              child: Text(
-                'Wow',
-                style: Theme.of(context).textTheme.display4,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 0.0),
-              child: const Text(
-                'Suspendisse venenatis ligula et lectus suscipit, sit amet tempus sem fermentum. Fusce efficitur dictum ornare. Morbi nisl ipsum, hendrerit tincidunt efficitur eget, congue a nisi. Nullam scelerisque iaculis tellus non commodo. In id turpis orci. Etiam non maximus ex, in accumsan tortor. Fusce eget tempor felis, id elementum orci. Vivamus pretium dapibus eros, efficitur iaculis nibh lobortis nec. Maecenas mattis nec tellus sit amet efficitur. Proin eu dapibus nulla, mattis semper lectus. Pellentesque interdum enim eu lacus malesuada dictum eget eget sem. Aliquam in tristique felis. Donec ac imperdiet lectus, eu mattis lectus. Maecenas eu elementum enim, sed viverra ex.',
-              ),
-            ),
-            const SizedBox(
-              height: 88.0,
-            )
-          ],
-        ),
-      );
-    },
-  );
+  Widget tabContent;
 
   void changeTheme(int newThemeCode) {
     AppTheme.of(context).changeTheme(newThemeCode);
@@ -278,12 +222,12 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           TabBarView(
             controller: _tabController,
             children: <Widget>[
-              tabContent,
-              tabContent,
-              tabContent,
-              tabContent,
-              tabContent,
-              tabContent,
+              Stall(),
+              Stall(),
+              Stall(),
+              Stall(),
+              Stall(),
+              Stall(),
             ],
           ),
           Positioned(
@@ -353,6 +297,103 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           ],
         ),
       ), */
+    );
+  }
+}
+
+class Stall extends StatefulWidget {
+  @override
+  StallState createState() => StallState();
+}
+
+class StallState extends State<Stall> {
+  double actualTop = 0;
+  double top = 0;
+  @override
+  Widget build(BuildContext context) {
+    return NotificationListener(
+      onNotification: (v) {
+        if (v is ScrollUpdateNotification) {
+          actualTop -= v.scrollDelta / 2;
+          if (actualTop * -2 < MediaQuery.of(context).size.width / 2560 * 1600) {
+            setState(() => top = actualTop <= 0 ? actualTop : 0);
+          }
+        }
+      },
+      child: Container(
+        color: Theme.of(context).canvasColor,
+        child: Stack(
+          children: <Widget>[
+            Positioned(
+              top: top,
+              child: Container(
+                height: MediaQuery.of(context).size.width / 2560 * 1600,
+                child: Image.network(
+                    'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg'),
+              ),
+            ),
+            SingleChildScrollView(
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    height: MediaQuery.of(context).size.width / 2560 * 1600,
+                  ),
+                  Container(
+                    color: Theme.of(context).canvasColor,
+                    child: Column(
+                      children: <Widget>[
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 24.0, 72.0, 8.0),
+                          child: const Text(
+                            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quis mauris vel quam tempor luctus ac id est. Phasellus nibh metus, iaculis id elit vitae, efficitur pretium elit. In quis porttitor mauris, ac commodo eros. Suspendisse elit sapien, iaculis quis fermentum vitae, luctus eget diam. Suspendisse pretium ex vitae libero facilisis lacinia. Cras dictum purus at sapien consectetur consectetur. Aenean diam lectus, dapibus blandit erat vel, lobortis tempor leo.',
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                          child: Text(
+                            'These are some big words.',
+                            style: Theme.of(context).textTheme.display1,
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                          child: Text(
+                            'And a heading',
+                            style: Theme.of(context).textTheme.display2,
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                          child: Text(
+                            'And another heading',
+                            style: Theme.of(context).textTheme.display3,
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
+                          child: Text(
+                            'Big',
+                            style: Theme.of(context).textTheme.display4,
+                          ),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 0.0),
+                          child: const Text(
+                            'Suspendisse venenatis ligula et lectus suscipit, sit amet tempus sem fermentum. Fusce efficitur dictum ornare. Morbi nisl ipsum, hendrerit tincidunt efficitur eget, congue a nisi. Nullam scelerisque iaculis tellus non commodo. In id turpis orci. Etiam non maximus ex, in accumsan tortor. Fusce eget tempor felis, id elementum orci. Vivamus pretium dapibus eros, efficitur iaculis nibh lobortis nec. Maecenas mattis nec tellus sit amet efficitur. Proin eu dapibus nulla, mattis semper lectus. Pellentesque interdum enim eu lacus malesuada dictum eget eget sem. Aliquam in tristique felis. Donec ac imperdiet lectus, eu mattis lectus. Maecenas eu elementum enim, sed viverra ex.',
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 88.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
