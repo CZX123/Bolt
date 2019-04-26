@@ -89,6 +89,7 @@ class AppThemeState extends State<AppTheme> {
       primarySwatch: Colors.deepPurple,
       accentColor: Colors.orangeAccent,
       scaffoldBackgroundColor: Colors.grey[900],
+      canvasColor: Colors.grey[850],
       appBarTheme: AppBarTheme(
         color: Colors.deepPurple,
       ),
@@ -100,6 +101,7 @@ class AppThemeState extends State<AppTheme> {
       primarySwatch: Colors.teal,
       accentColor: Colors.redAccent,
       scaffoldBackgroundColor: Colors.black,
+      canvasColor: Colors.grey[900],
       appBarTheme: AppBarTheme(
         color: Colors.teal,
       ),
@@ -150,7 +152,7 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
     int _themeCode = AppTheme.of(context).themeCode;
     int _fontCode = AppTheme.of(context).fontCode;
     return Scaffold(
-      endDrawer: Drawer(
+      drawer: Drawer(
         child: ListView(
           children: <Widget>[
             ListTile(
@@ -231,11 +233,11 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
             ],
           ),
           Positioned(
-            left: 16.0,
-            right: 16.0,
-            bottom: 16.0,
+            left: 0.0,
+            right: 0.0,
+            bottom: 0.0,
             child: Material(
-              borderRadius: BorderRadius.circular(12.0),
+              color: Theme.of(context).canvasColor,
               elevation: 8.0,
               child: TabBar(
                 labelColor: Theme.of(context).colorScheme.onSurface,
@@ -307,92 +309,211 @@ class Stall extends StatefulWidget {
 }
 
 class StallState extends State<Stall> {
-  double actualTop = 0;
-  double top = 0;
+  ScrollController scrollController = ScrollController();
+
   @override
   Widget build(BuildContext context) {
-    return NotificationListener(
-      onNotification: (v) {
-        if (v is ScrollUpdateNotification) {
-          actualTop -= v.scrollDelta / 2;
-          if (actualTop * -2 < MediaQuery.of(context).size.width / 2560 * 1600) {
-            setState(() => top = actualTop <= 0 ? actualTop : 0);
-          }
-        }
-      },
-      child: Container(
-        color: Theme.of(context).canvasColor,
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              top: top,
-              child: Container(
-                height: MediaQuery.of(context).size.width / 2560 * 1600,
-                child: Image.network(
-                    'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg'),
-              ),
-            ),
-            SingleChildScrollView(
-              child: Column(
-                children: <Widget>[
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: Stack(
+        children: <Widget>[
+          StallImage(
+            controller: scrollController,
+          ),
+          CustomScrollView(
+            controller: scrollController,
+            slivers: <Widget>[
+              SliverList(
+                delegate: SliverChildListDelegate([
                   SizedBox(
                     height: MediaQuery.of(context).size.width / 2560 * 1600,
                   ),
                   Container(
-                    color: Theme.of(context).canvasColor,
+                    color: Theme.of(context).scaffoldBackgroundColor,
                     child: Column(
                       children: <Widget>[
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 24.0, 72.0, 8.0),
-                          child: const Text(
-                            'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quis mauris vel quam tempor luctus ac id est. Phasellus nibh metus, iaculis id elit vitae, efficitur pretium elit. In quis porttitor mauris, ac commodo eros. Suspendisse elit sapien, iaculis quis fermentum vitae, luctus eget diam. Suspendisse pretium ex vitae libero facilisis lacinia. Cras dictum purus at sapien consectetur consectetur. Aenean diam lectus, dapibus blandit erat vel, lobortis tempor leo.',
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-                          child: Text(
-                            'These are some big words.',
-                            style: Theme.of(context).textTheme.display1,
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-                          child: Text(
-                            'And a heading',
-                            style: Theme.of(context).textTheme.display2,
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-                          child: Text(
-                            'And another heading',
-                            style: Theme.of(context).textTheme.display3,
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 8.0),
-                          child: Text(
-                            'Big',
-                            style: Theme.of(context).textTheme.display4,
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(72.0, 8.0, 72.0, 0.0),
-                          child: const Text(
-                            'Suspendisse venenatis ligula et lectus suscipit, sit amet tempus sem fermentum. Fusce efficitur dictum ornare. Morbi nisl ipsum, hendrerit tincidunt efficitur eget, congue a nisi. Nullam scelerisque iaculis tellus non commodo. In id turpis orci. Etiam non maximus ex, in accumsan tortor. Fusce eget tempor felis, id elementum orci. Vivamus pretium dapibus eros, efficitur iaculis nibh lobortis nec. Maecenas mattis nec tellus sit amet efficitur. Proin eu dapibus nulla, mattis semper lectus. Pellentesque interdum enim eu lacus malesuada dictum eget eget sem. Aliquam in tristique felis. Donec ac imperdiet lectus, eu mattis lectus. Maecenas eu elementum enim, sed viverra ex.',
-                          ),
-                        ),
                         const SizedBox(
-                          height: 88.0,
+                          height: 24.0,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: <Widget>[
+                            Stack(
+                              alignment: Alignment.center,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.accessibility,
+                                  color: Theme.of(context).dividerColor,
+                                  size: 128.0,
+                                ),
+                                Column(
+                                  children: <Widget>[
+                                    Text(
+                                      '18',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 36.0,
+                                        height: 0.8,
+                                      ),
+                                    ),
+                                    Text(
+                                      'people',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 15.0,
+                                        height: 0.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Stack(
+                              alignment: Alignment.center,
+                              children: <Widget>[
+                                Icon(
+                                  Icons.access_time,
+                                  color: Theme.of(context).dividerColor,
+                                  size: 128.0,
+                                ),
+                                Column(
+                                  children: <Widget>[
+                                    Text(
+                                      '12',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 36.0,
+                                        height: 0.8,
+                                      ),
+                                    ),
+                                    Text(
+                                      'mins',
+                                      style: TextStyle(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                        fontSize: 15.0,
+                                        height: 0.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 24.0,
+                        ),
+                        Center(
+                          child: Text(
+                            'Menu',
+                            style: Theme.of(context).textTheme.title,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ]),
               ),
-            ),
-          ],
-        ),
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(2.0, 24.0, 2.0, 96.0),
+                sliver: SliverGrid.count(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 2.0,
+                  crossAxisSpacing: 2.0,
+                  children: <Widget>[
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class StallImage extends StatefulWidget {
+  final ScrollController controller;
+  StallImage({this.controller});
+  _StallImageState createState() => _StallImageState();
+}
+
+class _StallImageState extends State<StallImage> {
+  double actualTop = 0;
+  double top = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      double offset = widget.controller.offset;
+      actualTop = -offset / 2;
+      double imageHeight = MediaQuery.of(context).size.width / 2560 * 1600;
+      if (actualTop * -2 < imageHeight) {
+        setState(() => top = actualTop <= 0 ? actualTop : 0);
+      }
+      else if (top != -imageHeight) {
+        setState(() => top = -imageHeight);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: top,
+      child: Container(
+        height: MediaQuery.of(context).size.width / 2560 * 1600,
+        child: Image.network(
+            'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg'),
       ),
     );
   }
