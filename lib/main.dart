@@ -1,9 +1,15 @@
+import 'package:flutter/services.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'theme.dart' as theme;
 import 'settings.dart';
-import 'widgets.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-void main() {
+void main() async {
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(AppTheme());
 }
 
@@ -27,37 +33,24 @@ class AppTheme extends StatefulWidget {
 }
 
 class AppThemeState extends State<AppTheme> {
-  int _themeCode = 0;
-  int get themeCode => _themeCode;
-  // 0 for light theme
-  // 1 for dark theme
-  // 2 for black theme
-  int _fontCode = 3;
-  int get fontCode => _fontCode;
-  final List<String> fonts = [
-    'Orkney',
-    'Manrope',
-    'Poppins',
-    'Grantipo',
-    'Montserrat'
-  ];
-  // Just for testing fonts
+  bool isDarkTheme = false;
+  bool blackOverDark = false;
 
-  void changeTheme(int code) {
+  void darkTheme(bool isDark) {
     setState(() {
-      _themeCode = code;
+      isDarkTheme = isDark;
     });
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('themeCode', code);
+      prefs.setBool('isDarkTheme', isDark);
     });
   }
 
-  void changeFont(int code) {
+  void blackTheme(bool isBlack) {
     setState(() {
-      _fontCode = code;
+      blackOverDark = isBlack;
     });
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('fontCode', code);
+      prefs.setBool('blackOverDark', isBlack);
     });
   }
 
@@ -66,53 +59,19 @@ class AppThemeState extends State<AppTheme> {
     super.initState();
     SharedPreferences.getInstance().then((prefs) {
       setState(() {
-        _themeCode = prefs.getInt('themeCode') ?? 0;
-        _fontCode = prefs.getInt('fontCode') ?? 3;
+        isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
+        blackOverDark = prefs.getBool('blackOverDark') ?? false;
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    ThemeData _lightTheme = ThemeData(
-      platform: TargetPlatform.iOS,
-      fontFamily: fonts[_fontCode],
-      brightness: Brightness.light,
-      primarySwatch: Colors.indigo,
-      accentColor: Colors.yellowAccent,
-      scaffoldBackgroundColor: Colors.grey[50],
-    );
-    ThemeData _darkTheme = ThemeData(
-      platform: TargetPlatform.iOS,
-      fontFamily: fonts[_fontCode],
-      brightness: Brightness.dark,
-      primarySwatch: Colors.deepPurple,
-      accentColor: Colors.orangeAccent,
-      scaffoldBackgroundColor: Colors.grey[900],
-      canvasColor: Colors.grey[850],
-      appBarTheme: AppBarTheme(
-        color: Colors.deepPurple,
-      ),
-    );
-    ThemeData _blackTheme = ThemeData(
-      platform: TargetPlatform.iOS,
-      fontFamily: fonts[_fontCode],
-      brightness: Brightness.dark,
-      primarySwatch: Colors.teal,
-      accentColor: Colors.redAccent,
-      scaffoldBackgroundColor: Colors.black,
-      canvasColor: Colors.grey[900],
-      appBarTheme: AppBarTheme(
-        color: Colors.teal,
-      ),
-    );
     return AppThemeInherited(
       data: this,
       child: MaterialApp(
         title: 'Bolt',
-        theme: _themeCode == 0
-            ? _lightTheme
-            : _themeCode == 1 ? _darkTheme : _blackTheme,
+        theme: theme.themeList[isDarkTheme ? blackOverDark ? 2 : 1 : 0],
         home: Home(),
       ),
     );
@@ -128,16 +87,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   Widget tabContent;
 
-  void changeTheme(int newThemeCode) {
-    AppTheme.of(context).changeTheme(newThemeCode);
-    setState(() {});
-  }
-
-  void changeFont(int newFontCode) {
-    AppTheme.of(context).changeFont(newFontCode);
-    setState(() {});
-  }
-
   @override
   void initState() {
     super.initState();
@@ -149,75 +98,9 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    int _themeCode = AppTheme.of(context).themeCode;
-    int _fontCode = AppTheme.of(context).fontCode;
     return Scaffold(
       drawer: Drawer(
-        child: ListView(
-          children: <Widget>[
-            ListTile(
-              title: Text(
-                'THEME',
-                style: Theme.of(context).textTheme.subhead,
-              ),
-            ),
-            RadioListTile<int>(
-              title: Text('Light Theme'),
-              value: 0,
-              groupValue: _themeCode,
-              onChanged: changeTheme,
-            ),
-            RadioListTile<int>(
-              title: Text('Dark Theme'),
-              value: 1,
-              groupValue: _themeCode,
-              onChanged: changeTheme,
-            ),
-            RadioListTile<int>(
-              title: Text('Black Theme'),
-              value: 2,
-              groupValue: _themeCode,
-              onChanged: changeTheme,
-            ),
-            Divider(),
-            ListTile(
-              title: Text(
-                'FONT',
-                style: Theme.of(context).textTheme.subhead,
-              ),
-            ),
-            RadioListTile<int>(
-              title: Text('Orkney'),
-              value: 0,
-              groupValue: _fontCode,
-              onChanged: changeFont,
-            ),
-            RadioListTile<int>(
-              title: Text('Manrope'),
-              value: 1,
-              groupValue: _fontCode,
-              onChanged: changeFont,
-            ),
-            RadioListTile<int>(
-              title: Text('Poppins'),
-              value: 2,
-              groupValue: _fontCode,
-              onChanged: changeFont,
-            ),
-            RadioListTile<int>(
-              title: Text('Grantipo'),
-              value: 3,
-              groupValue: _fontCode,
-              onChanged: changeFont,
-            ),
-            RadioListTile<int>(
-              title: Text('Montserrat'),
-              value: 4,
-              groupValue: _fontCode,
-              onChanged: changeFont,
-            ),
-          ],
-        ),
+        child: SettingsWidget(),
       ),
       body: Stack(
         children: <Widget>[
@@ -247,22 +130,22 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 isScrollable: true,
                 tabs: <Widget>[
                   Tab(
-                    text: 'NOODLES',
+                    text: 'Noodles',
                   ),
                   Tab(
-                    text: 'JAPANESE',
+                    text: 'Japanese',
                   ),
                   Tab(
-                    text: 'WESTERN',
+                    text: 'Western',
                   ),
                   Tab(
-                    text: 'STALL 4',
+                    text: "Mum's Cooking",
                   ),
                   Tab(
-                    text: 'STALL 5',
+                    text: 'Chicken Rice',
                   ),
                   Tab(
-                    text: 'STALL 6',
+                    text: 'Malay',
                   ),
                 ],
               ),
@@ -270,35 +153,6 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           ),
         ],
       ),
-/*       bottomNavigationBar: Material(
-        elevation: 8.0,
-        child: TabBar(
-          labelColor: Theme.of(context).colorScheme.onSurface,
-          controller: _tabController,
-          indicator: BoxDecoration(),
-          isScrollable: true,
-          tabs: <Widget>[
-            Tab(
-              text: 'NOODLES',
-            ),
-            Tab(
-              text: 'JAPANESE',
-            ),
-            Tab(
-              text: 'WESTERN',
-            ),
-            Tab(
-              text: 'STALL 4',
-            ),
-            Tab(
-              text: 'STALL 5',
-            ),
-            Tab(
-              text: 'STALL 6',
-            ),
-          ],
-        ),
-      ), */
     );
   }
 }
@@ -308,8 +162,12 @@ class Stall extends StatefulWidget {
   StallState createState() => StallState();
 }
 
-class StallState extends State<Stall> {
+class StallState extends State<Stall>
+    with AutomaticKeepAliveClientMixin<Stall> {
   ScrollController scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
@@ -350,23 +208,17 @@ class StallState extends State<Stall> {
                                   children: <Widget>[
                                     Text(
                                       '18',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                        fontSize: 36.0,
-                                        height: 0.8,
-                                      ),
+                                      style:
+                                          Theme.of(context).textTheme.display3,
                                     ),
                                     Text(
                                       'people',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                        fontSize: 15.0,
-                                        height: 0.4,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .body1
+                                          .copyWith(
+                                            height: 0.4,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -384,23 +236,17 @@ class StallState extends State<Stall> {
                                   children: <Widget>[
                                     Text(
                                       '12',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                        fontSize: 36.0,
-                                        height: 0.8,
-                                      ),
+                                      style:
+                                          Theme.of(context).textTheme.display3,
                                     ),
                                     Text(
                                       'mins',
-                                      style: TextStyle(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface,
-                                        fontSize: 15.0,
-                                        height: 0.4,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .body1
+                                          .copyWith(
+                                            height: 0.4,
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -414,58 +260,103 @@ class StallState extends State<Stall> {
                         Center(
                           child: Text(
                             'Menu',
-                            style: Theme.of(context).textTheme.title,
+                            style: Theme.of(context).textTheme.display2,
                           ),
+                        ),
+                        FlatButton(
+                          onPressed: () {
+                            getTemporaryDirectory().then((dir) {
+                              File imageFile = File(
+                                  '${dir.path}/torii_landscape_lake_127598_2560x1600.jpg');
+                              imageFile.exists().then((exists) {
+                                if (exists) imageFile.delete();
+                              });
+                            });
+                          },
+                          child: Text('Clear Image File'),
                         ),
                       ],
                     ),
                   ),
                 ]),
               ),
+              SliverToBoxAdapter(
+                child: StreamBuilder<Event>(
+                  stream: FirebaseDatabase.instance.reference().child('food').onValue,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return LinearProgressIndicator();
+                    Map<dynamic, dynamic> stallData = snapshot.data.snapshot.value;
+                    List<Widget> stallWidgetList = [];
+                    stallData.forEach((key, value) {
+                      stallWidgetList.add(
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24.0, vertical: 16.0),
+                          child: Text(
+                            '$key: $value',
+                            style: Theme.of(context).textTheme.display2,
+                          ),
+                        ),
+                      );
+                    });
+                    return Column(
+                      children: stallWidgetList,
+                    );
+                  },
+                ),
+              ),
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(2.0, 24.0, 2.0, 96.0),
+                padding: EdgeInsets.fromLTRB(4.0, 24.0, 4.0, 96.0),
                 sliver: SliverGrid.count(
                   crossAxisCount: 2,
-                  mainAxisSpacing: 2.0,
-                  crossAxisSpacing: 2.0,
+                  mainAxisSpacing: 4.0,
+                  crossAxisSpacing: 4.0,
                   children: <Widget>[
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
                     DecoratedBox(
                       decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
                         color: Theme.of(context).dividerColor,
                       ),
                     ),
@@ -489,6 +380,7 @@ class StallImage extends StatefulWidget {
 class _StallImageState extends State<StallImage> {
   double actualTop = 0;
   double top = 0;
+  File imageFile;
 
   @override
   void initState() {
@@ -499,10 +391,31 @@ class _StallImageState extends State<StallImage> {
       double imageHeight = MediaQuery.of(context).size.width / 2560 * 1600;
       if (actualTop * -2 < imageHeight) {
         setState(() => top = actualTop <= 0 ? actualTop : 0);
-      }
-      else if (top != -imageHeight) {
+      } else if (top != -imageHeight) {
         setState(() => top = -imageHeight);
       }
+    });
+    getTemporaryDirectory().then((dir) {
+      File file = File('${dir.path}/torii_landscape_lake_127598_2560x1600.jpg');
+      file.exists().then((exists) {
+        if (exists)
+          setState(() => imageFile = file);
+        else {
+          print('Downloading Image');
+          http
+              .get(
+                  'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg')
+              .then((response) {
+            print('Saving Image');
+            file.writeAsBytes(response.bodyBytes).then((file) {
+              print('Done');
+              setState(() {
+                imageFile = file;
+              });
+            });
+          });
+        }
+      });
     });
   }
 
@@ -511,9 +424,15 @@ class _StallImageState extends State<StallImage> {
     return Positioned(
       top: top,
       child: Container(
+        color: Theme.of(context).dividerColor,
         height: MediaQuery.of(context).size.width / 2560 * 1600,
-        child: Image.network(
-            'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg'),
+        child: AnimatedOpacity(
+          opacity: imageFile != null ? 1.0 : 0.0,
+          duration: Duration(
+            milliseconds: 500,
+          ),
+          child: imageFile != null ? Image.file(imageFile) : SizedBox(),
+        ),
       ),
     );
   }

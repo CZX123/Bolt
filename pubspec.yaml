@@ -23,8 +23,10 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^0.1.2
-  flutter_bloc: ^0.11.1
   shared_preferences: ^0.5.2
+  path_provider: ^0.5.0+1
+  http: ^0.12.0+2
+  firebase_database: ^2.0.3
 
 dev_dependencies:
   flutter_test:
@@ -42,31 +44,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   fonts:
-    - family: Orkney
-      fonts:
-        - asset: fonts/Orkney-Medium.ttf
-        - asset: fonts/Orkney-Bold.ttf
-          weight: 500
     - family: Manrope
       fonts:
-        - asset: fonts/Manrope-Medium.otf
+        - asset: fonts/Manrope-Semibold.otf
         - asset: fonts/Manrope-Bold.otf
-          weight: 500
-    - family: Poppins
-      fonts:
-        - asset: fonts/Poppins-Medium.ttf
-        - asset: fonts/Poppins-Bold.ttf
-          weight: 500
-    - family: Grantipo
-      fonts:
-        - asset: fonts/GrantipoBeta001-Medium.ttf
-        - asset: fonts/GrantipoBeta001-SemiBold.ttf
-          weight: 500
-    - family: Montserrat
-      fonts:
-        - asset: fonts/Montserrat-Medium.ttf
-        - asset: fonts/Montserrat-Bold.ttf
-          weight: 500
+          weight: 700
 
   # To add assets to your application, add an assets section, like this:
   # assets:
