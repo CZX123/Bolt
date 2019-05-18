@@ -1,12 +1,14 @@
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'theme.dart' as theme;
 import 'settings.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'widgets.dart';
 
 void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -84,8 +86,15 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
   TabController _tabController;
-
   Widget tabContent;
+  final List<String> stallList = [
+    'Noodles',
+    'Japanese',
+    'Western',
+    "Mum's Cooking",
+    'Chicken Rice',
+    'Malay',
+  ];
 
   @override
   void initState() {
@@ -107,48 +116,64 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
           TabBarView(
             controller: _tabController,
             children: <Widget>[
-              Stall(),
-              Stall(),
-              Stall(),
-              Stall(),
-              Stall(),
-              Stall(),
+              for (String name in stallList)
+                Stall(
+                  name: name,
+                ),
             ],
           ),
+          // Positioned(
+          //   left: 0.0,
+          //   right: 0.0,
+          //   bottom: 0.0,
+          //   child: Transform.rotate(
+          //     angle: pi,
+          //     child: Material(
+          //       borderRadius: BorderRadius.only(
+          //         bottomLeft: Radius.circular(16.0),
+          //         bottomRight: Radius.circular(16.0),
+          //       ),
+          //       color: Theme.of(context).canvasColor,
+          //       elevation: 16.0,
+          //       child: Transform.rotate(
+          //         angle: pi,
+          //         child: TabBar(
+          //           labelColor: Theme.of(context).colorScheme.onSurface,
+          //           controller: _tabController,
+          //           indicatorSize: TabBarIndicatorSize.label,
+          //           indicatorColor: Theme.of(context).colorScheme.onSurface,
+          //           isScrollable: true,
+          //           tabs: <Widget>[
+          //             Tab(
+          //               text: 'Noodles',
+          //             ),
+          //             Tab(
+          //               text: 'Japanese',
+          //             ),
+          //             Tab(
+          //               text: 'Western',
+          //             ),
+          //             Tab(
+          //               text: "Mum's Cooking",
+          //             ),
+          //             Tab(
+          //               text: 'Chicken Rice',
+          //             ),
+          //             Tab(
+          //               text: 'Malay',
+          //             ),
+          //           ],
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
           Positioned(
-            left: 0.0,
-            right: 0.0,
-            bottom: 0.0,
-            child: Material(
-              color: Theme.of(context).canvasColor,
-              elevation: 8.0,
-              child: TabBar(
-                labelColor: Theme.of(context).colorScheme.onSurface,
-                controller: _tabController,
-                indicatorSize: TabBarIndicatorSize.label,
-                indicatorColor: Theme.of(context).colorScheme.onSurface,
-                isScrollable: true,
-                tabs: <Widget>[
-                  Tab(
-                    text: 'Noodles',
-                  ),
-                  Tab(
-                    text: 'Japanese',
-                  ),
-                  Tab(
-                    text: 'Western',
-                  ),
-                  Tab(
-                    text: "Mum's Cooking",
-                  ),
-                  Tab(
-                    text: 'Chicken Rice',
-                  ),
-                  Tab(
-                    text: 'Malay',
-                  ),
-                ],
-              ),
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: CustomTabBar(
+              tabController: _tabController,
             ),
           ),
         ],
@@ -158,6 +183,8 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 }
 
 class Stall extends StatefulWidget {
+  final String name;
+  Stall({@required this.name});
   @override
   StallState createState() => StallState();
 }
@@ -171,6 +198,7 @@ class StallState extends State<Stall>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Stack(
@@ -259,22 +287,27 @@ class StallState extends State<Stall>
                         ),
                         Center(
                           child: Text(
-                            'Menu',
+                            '${widget.name} Stall Menu',
                             style: Theme.of(context).textTheme.display2,
                           ),
                         ),
-                        FlatButton(
-                          onPressed: () {
-                            getTemporaryDirectory().then((dir) {
-                              File imageFile = File(
-                                  '${dir.path}/torii_landscape_lake_127598_2560x1600.jpg');
-                              imageFile.exists().then((exists) {
-                                if (exists) imageFile.delete();
-                              });
-                            });
-                          },
-                          child: Text('Clear Image File'),
-                        ),
+                        // FlatButton(
+                        //   onPressed: () {
+                        //     getTemporaryDirectory().then((dir) {
+                        //       File imageFile = File(
+                        //           '${dir.path}/stall.jpg');
+                        //       imageFile.exists().then((exists) {
+                        //         if (exists) imageFile.delete();
+                        //       });
+                        //       File imageFile2 = File(
+                        //           '${dir.path}/food.jpg');
+                        //       imageFile2.exists().then((exists) {
+                        //         if (exists) imageFile2.delete();
+                        //       });
+                        //     });
+                        //   },
+                        //   child: Text('Clear Images'),
+                        // ),
                       ],
                     ),
                   ),
@@ -284,7 +317,10 @@ class StallState extends State<Stall>
                 child: StreamBuilder<Event>(
                   stream: FirebaseDatabase.instance.reference().child('food').onValue,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return LinearProgressIndicator();
+                    if (!snapshot.hasData) return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.0),
+                      child: LinearProgressIndicator(),
+                    );
                     Map<dynamic, dynamic> stallData = snapshot.data.snapshot.value;
                     List<Widget> stallWidgetList = [];
                     stallData.forEach((key, value) {
@@ -307,60 +343,12 @@ class StallState extends State<Stall>
               ),
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(4.0, 24.0, 4.0, 96.0),
-                sliver: SliverGrid.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 4.0,
-                  crossAxisSpacing: 4.0,
-                  children: <Widget>[
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8.0),
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                  ],
+                sliver: SliverToBoxAdapter(
+                  child: Wrap(
+                    children: <Widget>[
+                      for (int i = 0; i < 10; i++) FoodItem(),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -373,7 +361,7 @@ class StallState extends State<Stall>
 
 class StallImage extends StatefulWidget {
   final ScrollController controller;
-  StallImage({this.controller});
+  StallImage({@required this.controller});
   _StallImageState createState() => _StallImageState();
 }
 
@@ -396,18 +384,18 @@ class _StallImageState extends State<StallImage> {
       }
     });
     getTemporaryDirectory().then((dir) {
-      File file = File('${dir.path}/torii_landscape_lake_127598_2560x1600.jpg');
+      File file = File('${dir.path}/stall.jpg');
       file.exists().then((exists) {
         if (exists)
           setState(() => imageFile = file);
         else {
           print('Downloading Image');
-          http
-              .get(
-                  'https://images.wallpaperscraft.com/image/torii_landscape_lake_127598_2560x1600.jpg')
-              .then((response) {
-            print('Saving Image');
-            file.writeAsBytes(response.bodyBytes).then((file) {
+          FirebaseStorage.instance
+              .ref()
+              .child('stall.jpg')
+              .getData(10 * 1024 * 1024)
+              .then((data) {
+            file.writeAsBytes(data).then((file) {
               print('Done');
               setState(() {
                 imageFile = file;
@@ -421,17 +409,159 @@ class _StallImageState extends State<StallImage> {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: top,
-      child: Container(
-        color: Theme.of(context).dividerColor,
-        height: MediaQuery.of(context).size.width / 2560 * 1600,
-        child: AnimatedOpacity(
-          opacity: imageFile != null ? 1.0 : 0.0,
-          duration: Duration(
-            milliseconds: 500,
+    double width = MediaQuery.of(context).size.width;
+    return Stack(
+      children: <Widget>[
+        Positioned(
+          top: top,
+          child: Container(
+            color: Theme.of(context).dividerColor,
+            height: width / 2560 * 1600,
+            child: AnimatedOpacity(
+              opacity: imageFile != null ? 1.0 : 0.0,
+              duration: Duration(
+                milliseconds: 500,
+              ),
+              child: imageFile != null ? Image.file(imageFile) : SizedBox(),
+            ),
           ),
-          child: imageFile != null ? Image.file(imageFile) : SizedBox(),
+        ),
+        Positioned(
+          top: top * 2 + width / 2560 * 1600 - 16.0,
+          child: Stack(
+            overflow: Overflow.visible,
+            children: <Widget>[
+              Transform.rotate(
+                angle: pi,
+                child: Material(
+                  elevation: 16.0,
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(16.0),
+                  child: SizedBox(
+                    height: 32.0,
+                    width: width,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 16.0,
+                child: Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  height: 64.0,
+                  width: width,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class CustomTabBar extends StatefulWidget {
+  final TabController tabController;
+  CustomTabBar({@required this.tabController});
+
+  _CustomTabBarState createState() => _CustomTabBarState();
+}
+
+class _CustomTabBarState extends State<CustomTabBar> {
+  final List<String> stallList = [
+    'Noodles',
+    'Japanese',
+    'Western',
+    "Mum's Cooking",
+    'Chicken Rice',
+    'Malay',
+  ];
+  List<GlobalKey> tabKeys = [
+    GlobalKey(),
+    GlobalKey(),
+    GlobalKey(),
+    GlobalKey(),
+    GlobalKey(),
+    GlobalKey(),
+  ];
+  List<double> positions = [0.0];
+  TabController tabController;
+  ScrollController scrollController = ScrollController();
+  double leftSpacing = 0.0;
+  double rightSpacing = 0.0;
+
+  void tabListener() {
+    // TODO: Add code
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((duration) {
+      setState(() {
+        leftSpacing = (MediaQuery.of(context).size.width - 16.0 -
+                tabKeys[0].currentContext.size.width) /
+            2;
+        rightSpacing = (MediaQuery.of(context).size.width - 16.0 -
+                tabKeys[5].currentContext.size.width) /
+            2;
+        for (int i = 1; i < tabKeys.length; i++) {
+          positions.add(positions[i - 1] +
+              (tabKeys[i - 1].currentContext.size.width +
+                      tabKeys[i].currentContext.size.width) /
+                  2);
+        }
+        print(positions);
+      });
+    });
+    tabController = widget.tabController;
+    tabController.animation.addListener(tabListener);
+  }
+
+  @override
+  void dispose() {
+    tabController.removeListener(tabListener);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      borderRadius: BorderRadius.circular(12.0),
+      color: Theme.of(context).canvasColor,
+      elevation: 16.0,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12.0),
+        child: SingleChildScrollView(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: <Widget>[
+              SizedBox(
+                width: leftSpacing,
+              ),
+              for (var i = 0; i < stallList.length; i++)
+                FlatButton(
+                  key: tabKeys[i],
+                  child: Container(
+                    alignment: Alignment.center,
+                    height: 56.0,
+                    child: Text(stallList[i]),
+                  ),
+                  onPressed: () {
+                    scrollController.animateTo(
+                      positions[i],
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.ease,
+                    );
+                    tabController.animateTo(i);
+                    setState(() {});
+                  },
+                ),
+              SizedBox(
+                width: rightSpacing,
+              ),
+            ],
+          ),
         ),
       ),
     );

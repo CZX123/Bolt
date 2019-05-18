@@ -56,6 +56,7 @@ TextTheme textTheme = const TextTheme().copyWith(
   ),
   subtitle: const TextStyle(
     height: 0.8,
+    fontSize: 12.0,
   ),
   button: const TextStyle(
     height: 0.8,
@@ -92,6 +93,9 @@ TextTheme lightThemeText = const TextTheme(
   display4: TextStyle(
     color: Colors.black87,
   ),
+  subtitle: TextStyle(
+    color: Colors.black54,
+  ),
 );
 
 TextTheme darkThemeText = const TextTheme(
@@ -103,5 +107,8 @@ TextTheme darkThemeText = const TextTheme(
   ),
   display4: TextStyle(
     color: Colors.white,
+  ),
+  subtitle: TextStyle(
+    color: Colors.white70,
   ),
 );
