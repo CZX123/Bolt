@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/services.dart';
 import 'dart:io';
@@ -12,31 +13,57 @@ import 'widgets.dart';
 
 void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-  runApp(AppTheme());
+  runApp(BoltApp());
 }
 
-class AppThemeInherited extends InheritedWidget {
-  final AppThemeState data;
-  AppThemeInherited({this.data, Widget child}) : super(child: child);
+class BoltAppInherited extends InheritedWidget {
+  final BoltAppState data;
+  BoltAppInherited({this.data, Widget child}) : super(child: child);
 
   @override
-  bool updateShouldNotify(AppThemeInherited old) => data != old.data;
+  bool updateShouldNotify(BoltAppInherited old) => data != old.data;
 }
 
-class AppTheme extends StatefulWidget {
+class BoltApp extends StatefulWidget {
   @override
-  AppThemeState createState() => AppThemeState();
+  BoltAppState createState() => BoltAppState();
 
-  static AppThemeState of(BuildContext context) {
-    return (context.inheritFromWidgetOfExactType(AppThemeInherited)
-            as AppThemeInherited)
+  static BoltAppState of(BuildContext context) {
+    return (context.inheritFromWidgetOfExactType(BoltAppInherited)
+            as BoltAppInherited)
         .data;
   }
 }
 
-class AppThemeState extends State<AppTheme> {
+class BoltAppState extends State<BoltApp> {
   bool isDarkTheme = false;
   bool blackOverDark = false;
+  Stream<Event> stalls;
+  dynamic previousData;
+
+  void _setNavColor(bool dark, bool black) {
+    if (!dark)
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          systemNavigationBarColor: Colors.grey[50],
+          systemNavigationBarIconBrightness: Brightness.dark,
+        ),
+      );
+    else if (black)
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.grey[900],
+        ),
+      );
+    else
+      SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Colors.grey[850],
+        ),
+      );
+  }
 
   void darkTheme(bool isDark) {
     setState(() {
@@ -45,6 +72,7 @@ class AppThemeState extends State<AppTheme> {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setBool('isDarkTheme', isDark);
     });
+    _setNavColor(isDark, blackOverDark);
   }
 
   void blackTheme(bool isBlack) {
@@ -54,22 +82,41 @@ class AppThemeState extends State<AppTheme> {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setBool('blackOverDark', isBlack);
     });
+    _setNavColor(isDarkTheme, isBlack);
   }
 
   @override
   void initState() {
     super.initState();
+    stalls = FirebaseDatabase.instance.reference().child('stalls').onValue;
+    stalls.listen((data) {
+      Map<dynamic, dynamic> values = data.snapshot.value;
+      List<String> stallList = values.keys.whereType<String>().toList();
+      Map<String, List<String>> menuList = values.map((key, value) {
+        String stall = key.toString();
+        List<String> menu = value['menu'].keys.whereType<String>().toList();
+        return MapEntry(stall, menu);
+      });
+      print(stallList);
+      print(menuList);
+      print("DataReceived: " + data.snapshot.value.toString());
+    }, onDone: () {
+      print("Task Done");
+    }, onError: (error) {
+      print("Some Error");
+    });
     SharedPreferences.getInstance().then((prefs) {
       setState(() {
         isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
         blackOverDark = prefs.getBool('blackOverDark') ?? false;
+        _setNavColor(isDarkTheme, blackOverDark);
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return AppThemeInherited(
+    return BoltAppInherited(
       data: this,
       child: MaterialApp(
         title: 'Bolt',
@@ -85,6 +132,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> with TickerProviderStateMixin {
+  GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   TabController _tabController;
   Widget tabContent;
   final List<String> stallList = [
@@ -103,11 +151,33 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       length: 6,
       vsync: this,
     );
+
+    // / TODO: Figure out how [DraggableScrollableSheet] works
+    // / Needed for view order screen in future
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _scaffoldKey.currentState.showBottomSheet((context) {
+    //     return CustomSheet.DraggableScrollableSheet(
+    //       expand: false,
+    //       builder: (context, controller) {
+    //         return ListView.builder(
+    //           controller: controller,
+    //           itemCount: 30,
+    //           itemBuilder: (context, index) {
+    //             return ListTile(
+    //               title: Text('${index + 1}'),
+    //             );
+    //           },
+    //         );
+    //       },
+    //     );
+    //   });
+    // });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       drawer: Drawer(
         child: SettingsWidget(),
       ),
@@ -122,58 +192,36 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 ),
             ],
           ),
-          // Positioned(
-          //   left: 0.0,
-          //   right: 0.0,
-          //   bottom: 0.0,
-          //   child: Transform.rotate(
-          //     angle: pi,
-          //     child: Material(
-          //       borderRadius: BorderRadius.only(
-          //         bottomLeft: Radius.circular(16.0),
-          //         bottomRight: Radius.circular(16.0),
-          //       ),
-          //       color: Theme.of(context).canvasColor,
-          //       elevation: 16.0,
-          //       child: Transform.rotate(
-          //         angle: pi,
-          //         child: TabBar(
-          //           labelColor: Theme.of(context).colorScheme.onSurface,
-          //           controller: _tabController,
-          //           indicatorSize: TabBarIndicatorSize.label,
-          //           indicatorColor: Theme.of(context).colorScheme.onSurface,
-          //           isScrollable: true,
-          //           tabs: <Widget>[
-          //             Tab(
-          //               text: 'Noodles',
-          //             ),
-          //             Tab(
-          //               text: 'Japanese',
-          //             ),
-          //             Tab(
-          //               text: 'Western',
-          //             ),
-          //             Tab(
-          //               text: "Mum's Cooking",
-          //             ),
-          //             Tab(
-          //               text: 'Chicken Rice',
-          //             ),
-          //             Tab(
-          //               text: 'Malay',
-          //             ),
-          //           ],
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
           Positioned(
-            left: 8,
-            right: 8,
-            bottom: 8,
-            child: CustomTabBar(
-              tabController: _tabController,
+            left: 0.0,
+            right: 0.0,
+            bottom: 0.0,
+            child: Material(
+              color: Theme.of(context).canvasColor,
+              elevation: 16.0,
+              child: Column(
+                children: <Widget>[
+                  TabBar(
+                    labelColor: Theme.of(context).colorScheme.onSurface,
+                    controller: _tabController,
+                    indicatorColor: Theme.of(context).colorScheme.onSurface,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    isScrollable: true,
+                    tabs: <Widget>[
+                      for (String name in stallList)
+                        SizedBox(
+                          height: 48.0,
+                          child: Tab(
+                            text: name,
+                          ),
+                        ),
+                    ],
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).padding.bottom,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -189,16 +237,12 @@ class Stall extends StatefulWidget {
   StallState createState() => StallState();
 }
 
-class StallState extends State<Stall>
-    with AutomaticKeepAliveClientMixin<Stall> {
+class StallState extends State<Stall> {
   ScrollController scrollController = ScrollController();
 
   @override
-  bool get wantKeepAlive => true;
-
-  @override
   Widget build(BuildContext context) {
-    super.build(context);
+    print(context);
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Stack(
@@ -206,152 +250,220 @@ class StallState extends State<Stall>
           StallImage(
             controller: scrollController,
           ),
-          CustomScrollView(
+          SingleChildScrollView(
             controller: scrollController,
-            slivers: <Widget>[
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  SizedBox(
-                    height: MediaQuery.of(context).size.width / 2560 * 1600,
-                  ),
-                  Container(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    child: Column(
-                      children: <Widget>[
-                        const SizedBox(
-                          height: 24.0,
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            child: Column(
+              children: <Widget>[
+                SizedBox(
+                  height: MediaQuery.of(context).size.width / 2560 * 1600,
+                ),
+                Container(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: Column(
+                    children: <Widget>[
+                      StallQueue(
+                        stallName: widget.name,
+                      ),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 72.0),
+                        child: Wrap(
+                          spacing: 8.0,
                           children: <Widget>[
-                            Stack(
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.accessibility,
-                                  color: Theme.of(context).dividerColor,
-                                  size: 128.0,
-                                ),
-                                Column(
-                                  children: <Widget>[
-                                    Text(
-                                      '18',
-                                      style:
-                                          Theme.of(context).textTheme.display3,
-                                    ),
-                                    Text(
-                                      'people',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .body1
-                                          .copyWith(
-                                            height: 0.4,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Stack(
-                              alignment: Alignment.center,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.access_time,
-                                  color: Theme.of(context).dividerColor,
-                                  size: 128.0,
-                                ),
-                                Column(
-                                  children: <Widget>[
-                                    Text(
-                                      '12',
-                                      style:
-                                          Theme.of(context).textTheme.display3,
-                                    ),
-                                    Text(
-                                      'mins',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .body1
-                                          .copyWith(
-                                            height: 0.4,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                            for (int i = 0; i < 10; i++) FoodItem(),
                           ],
                         ),
-                        SizedBox(
-                          height: 24.0,
-                        ),
-                        Center(
-                          child: Text(
-                            '${widget.name} Stall Menu',
-                            style: Theme.of(context).textTheme.display2,
-                          ),
-                        ),
-                        // FlatButton(
-                        //   onPressed: () {
-                        //     getTemporaryDirectory().then((dir) {
-                        //       File imageFile = File(
-                        //           '${dir.path}/stall.jpg');
-                        //       imageFile.exists().then((exists) {
-                        //         if (exists) imageFile.delete();
-                        //       });
-                        //       File imageFile2 = File(
-                        //           '${dir.path}/food.jpg');
-                        //       imageFile2.exists().then((exists) {
-                        //         if (exists) imageFile2.delete();
-                        //       });
-                        //     });
-                        //   },
-                        //   child: Text('Clear Images'),
-                        // ),
-                      ],
-                    ),
-                  ),
-                ]),
-              ),
-              SliverToBoxAdapter(
-                child: StreamBuilder<Event>(
-                  stream: FirebaseDatabase.instance.reference().child('food').onValue,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.0),
-                      child: LinearProgressIndicator(),
-                    );
-                    Map<dynamic, dynamic> stallData = snapshot.data.snapshot.value;
-                    List<Widget> stallWidgetList = [];
-                    stallData.forEach((key, value) {
-                      stallWidgetList.add(
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 24.0, vertical: 16.0),
-                          child: Text(
-                            '$key: $value',
-                            style: Theme.of(context).textTheme.display2,
-                          ),
-                        ),
-                      );
-                    });
-                    return Column(
-                      children: stallWidgetList,
-                    );
-                  },
-                ),
-              ),
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(4.0, 24.0, 4.0, 96.0),
-                sliver: SliverToBoxAdapter(
-                  child: Wrap(
-                    children: <Widget>[
-                      for (int i = 0; i < 10; i++) FoodItem(),
+                      ),
+                      StreamBuilder<Event>(
+                        stream: FirebaseDatabase.instance
+                            .reference()
+                            .child('stalls')
+                            .onValue,
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData)
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24.0),
+                              child: LinearProgressIndicator(),
+                            );
+                          Map<dynamic, dynamic> stallData =
+                              snapshot.data.snapshot.value;
+                          List<Widget> stallWidgetList = [];
+                          stallData.forEach((key, value) {
+                            stallWidgetList.add(
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 24.0, vertical: 16.0),
+                                child: Text(
+                                  '$key: $value',
+                                  style: Theme.of(context).textTheme.display2,
+                                ),
+                              ),
+                            );
+                          });
+                          return Column(
+                            children: stallWidgetList,
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class StallQueue extends StatefulWidget {
+  final String stallName;
+  final EdgeInsetsGeometry padding;
+  const StallQueue({
+    @required this.stallName,
+    this.padding = const EdgeInsets.symmetric(vertical: 24.0),
+  });
+  @override
+  _StallQueueState createState() => _StallQueueState();
+}
+
+class _StallQueueState extends State<StallQueue> {
+  bool showSecond = false;
+  String queue1 = '  ';
+  String queue2 = '  ';
+
+  @override
+  void initState() {
+    super.initState();
+    Stream<Event> queueStream = FirebaseDatabase.instance
+        .reference()
+        .child('stalls')
+        .child(widget.stallName.toLowerCase())
+        .child('queue')
+        .onValue;
+    queueStream.listen((data) {
+      setState(() {
+        if (showSecond)
+          queue1 = data.snapshot.value.toString();
+        else
+          queue2 = data.snapshot.value.toString();
+        showSecond = !showSecond;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: widget.padding,
+      child: Column(
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(
+                    Icons.accessibility,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  const SizedBox(
+                    width: 8.0,
+                  ),
+                  AnimatedCrossFade(
+                    firstChild: Text(queue1),
+                    secondChild: Text(queue2),
+                    duration: Duration(milliseconds: 200),
+                    firstCurve: Interval(0, .5),
+                    secondCurve: Interval(.5, 1),
+                    crossFadeState: showSecond
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                  ),
+                  Text(' people'),
+                  const SizedBox(
+                    width: 24.0,
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(
+                    Icons.access_time,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                  const SizedBox(
+                    width: 8.0,
+                  ),
+                  AnimatedCrossFade(
+                    firstChild: Text(int.tryParse(queue1) != null
+                        ? '${int.parse(queue1) ~/ 1.5}'
+                        : 'null'),
+                    secondChild: Text(int.tryParse(queue2) != null
+                        ? '${int.parse(queue2) ~/ 1.5}'
+                        : 'null'),
+                    duration: Duration(milliseconds: 200),
+                    firstCurve: Interval(0, .5),
+                    secondCurve: Interval(.5, 1),
+                    crossFadeState: showSecond
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                  ),
+                  Text(' mins'),
+                  const SizedBox(
+                    width: 24.0,
+                  ),
+                ],
               ),
             ],
+          ),
+          const SizedBox(
+            height: 16.0,
+          ),
+          Material(
+            color: Colors.transparent,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    int currentValue = showSecond
+                        ? int.tryParse(queue2)
+                        : int.tryParse(queue1);
+                    if (currentValue != null) {
+                      FirebaseDatabase.instance
+                          .reference()
+                          .child('stalls')
+                          .child(widget.stallName.toLowerCase())
+                          .child('queue')
+                          .set(currentValue + 1);
+                    }
+                  },
+                ),
+                const SizedBox(
+                  width: 24.0,
+                ),
+                IconButton(
+                  icon: Icon(Icons.remove),
+                  onPressed: () {
+                    int currentValue = showSecond
+                        ? int.tryParse(queue2)
+                        : int.tryParse(queue1);
+                    if (currentValue != null && currentValue != 0) {
+                      FirebaseDatabase.instance
+                          .reference()
+                          .child('stalls')
+                          .child(widget.stallName.toLowerCase())
+                          .child('queue')
+                          .set(currentValue - 1);
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -455,115 +567,6 @@ class _StallImageState extends State<StallImage> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class CustomTabBar extends StatefulWidget {
-  final TabController tabController;
-  CustomTabBar({@required this.tabController});
-
-  _CustomTabBarState createState() => _CustomTabBarState();
-}
-
-class _CustomTabBarState extends State<CustomTabBar> {
-  final List<String> stallList = [
-    'Noodles',
-    'Japanese',
-    'Western',
-    "Mum's Cooking",
-    'Chicken Rice',
-    'Malay',
-  ];
-  List<GlobalKey> tabKeys = [
-    GlobalKey(),
-    GlobalKey(),
-    GlobalKey(),
-    GlobalKey(),
-    GlobalKey(),
-    GlobalKey(),
-  ];
-  List<double> positions = [0.0];
-  TabController tabController;
-  ScrollController scrollController = ScrollController();
-  double leftSpacing = 0.0;
-  double rightSpacing = 0.0;
-
-  void tabListener() {
-    // TODO: Add code
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((duration) {
-      setState(() {
-        leftSpacing = (MediaQuery.of(context).size.width - 16.0 -
-                tabKeys[0].currentContext.size.width) /
-            2;
-        rightSpacing = (MediaQuery.of(context).size.width - 16.0 -
-                tabKeys[5].currentContext.size.width) /
-            2;
-        for (int i = 1; i < tabKeys.length; i++) {
-          positions.add(positions[i - 1] +
-              (tabKeys[i - 1].currentContext.size.width +
-                      tabKeys[i].currentContext.size.width) /
-                  2);
-        }
-        print(positions);
-      });
-    });
-    tabController = widget.tabController;
-    tabController.animation.addListener(tabListener);
-  }
-
-  @override
-  void dispose() {
-    tabController.removeListener(tabListener);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      borderRadius: BorderRadius.circular(12.0),
-      color: Theme.of(context).canvasColor,
-      elevation: 16.0,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
-        child: SingleChildScrollView(
-          controller: scrollController,
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: <Widget>[
-              SizedBox(
-                width: leftSpacing,
-              ),
-              for (var i = 0; i < stallList.length; i++)
-                FlatButton(
-                  key: tabKeys[i],
-                  child: Container(
-                    alignment: Alignment.center,
-                    height: 56.0,
-                    child: Text(stallList[i]),
-                  ),
-                  onPressed: () {
-                    scrollController.animateTo(
-                      positions[i],
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.ease,
-                    );
-                    tabController.animateTo(i);
-                    setState(() {});
-                  },
-                ),
-              SizedBox(
-                width: rightSpacing,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

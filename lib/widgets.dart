@@ -41,18 +41,18 @@ class _FoodItemState extends State<FoodItem> {
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
-    double cardWidth = (screenWidth - 4.0 * 2) / 2;
+    double cardWidth = (screenWidth - 8.0 * 3) / 2;
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: 4.0,
         vertical: 6.0,
       ),
-      width: cardWidth,
       child: Column(
         children: <Widget>[
           Material(
             elevation: shadow,
-            shadowColor: Theme.of(context).brightness == Brightness.dark ? Colors.yellowAccent : Colors.black,
+            shadowColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.yellowAccent
+                : Colors.black,
             borderRadius: BorderRadius.circular(12.0),
             clipBehavior: Clip.antiAlias,
             child: AnimatedOpacity(
@@ -90,7 +90,7 @@ class _FoodItemState extends State<FoodItem> {
           ),
           Text('Food'),
           Text(
-            'Other Info',
+            '\$3.00',
             style: Theme.of(context).textTheme.subtitle,
           ),
         ],

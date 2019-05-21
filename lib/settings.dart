@@ -20,19 +20,19 @@ class _SettingsWidgetState extends State<SettingsWidget> {
         SwitchListTile(
           title: Text('Dark Mode'),
           subtitle: Text('Come join the dark side'),
-          value: AppTheme.of(context).isDarkTheme,
+          value: BoltApp.of(context).isDarkTheme,
           onChanged: (toggle) {
-            AppTheme.of(context).darkTheme(toggle);
+            BoltApp.of(context).darkTheme(toggle);
             setState(() {});
           },
         ),
         SwitchListTile(
           title: Text('True Black'),
           subtitle: Text('For your OLED screens'),
-          value: AppTheme.of(context).blackOverDark,
-          onChanged: AppTheme.of(context).isDarkTheme
+          value: BoltApp.of(context).blackOverDark,
+          onChanged: BoltApp.of(context).isDarkTheme
               ? (toggle) {
-                  AppTheme.of(context).blackTheme(toggle);
+                  BoltApp.of(context).blackTheme(toggle);
                   setState(() {});
                 }
               : null,
