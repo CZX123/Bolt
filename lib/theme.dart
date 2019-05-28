@@ -1,4 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class ThemeState extends ChangeNotifier {
+  ThemeState();
+
+  int _themeCode = 0;
+
+  Brightness _inverseBrightness(Brightness brightness) {
+    return brightness == Brightness.light ? Brightness.dark : Brightness.light;
+  }
+
+  void setThemeCode(int newCode) {
+    // make navigation bar same collor as bottom sheet color
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        systemNavigationBarColor: themeList[newCode].canvasColor,
+        systemNavigationBarIconBrightness: _inverseBrightness(themeList[newCode].brightness),
+      ),
+    );
+    // Save the new theme code to device storage
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setInt('themeCode', newCode);
+    });
+    _themeCode = newCode;
+    notifyListeners();
+  }
+
+  int get themeCode => _themeCode;
+}
 
 // light theme
 // dark theme
@@ -83,7 +113,7 @@ TextTheme textTheme = const TextTheme().copyWith(
   ),
 );
 
-TextTheme lightThemeText = const TextTheme(
+const TextTheme lightThemeText = TextTheme(
   display2: TextStyle(
     color: Colors.black87,
   ),
@@ -98,7 +128,7 @@ TextTheme lightThemeText = const TextTheme(
   ),
 );
 
-TextTheme darkThemeText = const TextTheme(
+const TextTheme darkThemeText = TextTheme(
   display2: TextStyle(
     color: Colors.white,
   ),

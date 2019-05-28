@@ -3,125 +3,79 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
-import 'theme.dart' as theme;
-import 'settings.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'theme.dart';
+import 'settings.dart';
 import 'widgets.dart';
+import 'CustomBottomSheet.dart';
 
 void main() async {
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(BoltApp());
 }
 
-class BoltAppInherited extends InheritedWidget {
-  final BoltAppState data;
-  BoltAppInherited({this.data, Widget child}) : super(child: child);
-
-  @override
-  bool updateShouldNotify(BoltAppInherited old) => data != old.data;
+class ViewOrder extends ChangeNotifier {
+  ViewOrder();
+  bool viewOrder = false;
+  void toggle() {
+    viewOrder = !viewOrder;
+    notifyListeners();
+  }
 }
 
 class BoltApp extends StatefulWidget {
   @override
   BoltAppState createState() => BoltAppState();
-
-  static BoltAppState of(BuildContext context) {
-    return (context.inheritFromWidgetOfExactType(BoltAppInherited)
-            as BoltAppInherited)
-        .data;
-  }
 }
 
 class BoltAppState extends State<BoltApp> {
-  bool isDarkTheme = false;
-  bool blackOverDark = false;
-  Stream<Event> stalls;
-  dynamic previousData;
-
-  void _setNavColor(bool dark, bool black) {
-    if (!dark)
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          systemNavigationBarColor: Colors.grey[50],
-          systemNavigationBarIconBrightness: Brightness.dark,
-        ),
-      );
-    else if (black)
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          systemNavigationBarIconBrightness: Brightness.light,
-          systemNavigationBarColor: Colors.grey[900],
-        ),
-      );
-    else
-      SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          systemNavigationBarIconBrightness: Brightness.light,
-          systemNavigationBarColor: Colors.grey[850],
-        ),
-      );
-  }
-
-  void darkTheme(bool isDark) {
-    setState(() {
-      isDarkTheme = isDark;
-    });
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('isDarkTheme', isDark);
-    });
-    _setNavColor(isDark, blackOverDark);
-  }
-
-  void blackTheme(bool isBlack) {
-    setState(() {
-      blackOverDark = isBlack;
-    });
-    SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('blackOverDark', isBlack);
-    });
-    _setNavColor(isDarkTheme, isBlack);
-  }
-
+  // Stream<Event> stalls;
+  // dynamic previousData;
   @override
   void initState() {
     super.initState();
-    stalls = FirebaseDatabase.instance.reference().child('stalls').onValue;
-    stalls.listen((data) {
-      Map<dynamic, dynamic> values = data.snapshot.value;
-      List<String> stallList = values.keys.whereType<String>().toList();
-      Map<String, List<String>> menuList = values.map((key, value) {
-        String stall = key.toString();
-        List<String> menu = value['menu'].keys.whereType<String>().toList();
-        return MapEntry(stall, menu);
-      });
-      print(stallList);
-      print(menuList);
-      print("DataReceived: " + data.snapshot.value.toString());
-    }, onDone: () {
-      print("Task Done");
-    }, onError: (error) {
-      print("Some Error");
-    });
-    SharedPreferences.getInstance().then((prefs) {
-      setState(() {
-        isDarkTheme = prefs.getBool('isDarkTheme') ?? false;
-        blackOverDark = prefs.getBool('blackOverDark') ?? false;
-        _setNavColor(isDarkTheme, blackOverDark);
-      });
-    });
+    // stalls = FirebaseDatabase.instance.reference().child('stalls').onValue;
+    // stalls.listen((data) {
+    //   Map<dynamic, dynamic> values = data.snapshot.value;
+    //   List<String> stallList = values.keys.whereType<String>().toList();
+    //   Map<String, List<String>> menuList = values.map((key, value) {
+    //     String stall = key.toString();
+    //     List<String> menu = value['menu'].keys.whereType<String>().toList();
+    //     return MapEntry(stall, menu);
+    //   });
+    //   print(stallList);
+    //   print(menuList);
+    //   print("DataReceived: " + data.snapshot.value.toString());
+    // }, onDone: () {
+    //   print("Task Done");
+    // }, onError: (error) {
+    //   print("Some Error");
+    // });
   }
 
   @override
   Widget build(BuildContext context) {
-    return BoltAppInherited(
-      data: this,
-      child: MaterialApp(
-        title: 'Bolt',
-        theme: theme.themeList[isDarkTheme ? blackOverDark ? 2 : 1 : 0],
-        home: Home(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          builder: (_) => ThemeState(),
+        ),
+        ChangeNotifierProvider(
+          builder: (_) => ViewOrder(),
+        )
+      ],
+      child: Consumer<ThemeState>(
+        builder: (context, themeState, widget) {
+          return MaterialApp(
+            title: 'Bolt',
+            theme: themeList[themeState.themeCode],
+            home: Home(),
+          );
+        },
       ),
     );
   }
@@ -151,31 +105,15 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
       length: 6,
       vsync: this,
     );
-
-    // / TODO: Figure out how [DraggableScrollableSheet] works
-    // / Needed for view order screen in future
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _scaffoldKey.currentState.showBottomSheet((context) {
-    //     return CustomSheet.DraggableScrollableSheet(
-    //       expand: false,
-    //       builder: (context, controller) {
-    //         return ListView.builder(
-    //           controller: controller,
-    //           itemCount: 30,
-    //           itemBuilder: (context, index) {
-    //             return ListTile(
-    //               title: Text('${index + 1}'),
-    //             );
-    //           },
-    //         );
-    //       },
-    //     );
-    //   });
-    // });
+    SharedPreferences.getInstance().then((prefs) {
+      Provider.of<ThemeState>(context)
+          .setThemeCode(prefs.getInt('themeCode') ?? 0);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    bool viewOrder = Provider.of<ViewOrder>(context).viewOrder;
     return Scaffold(
       key: _scaffoldKey,
       drawer: Drawer(
@@ -192,35 +130,74 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
                 ),
             ],
           ),
+          CustomBottomSheet(
+            windowHeight: MediaQuery.of(context).size.height,
+            headerBuilder: (context, viewSheet) {
+              return FlatButton(
+                textColor: Theme.of(context).primaryColor,
+                child: Container(
+                  height: 52,
+                  width: MediaQuery.of(context).size.width,
+                  alignment: Alignment.center,
+                  child: Text('View Order'),
+                ),
+                onPressed: viewSheet,
+              );
+            },
+            contentBuilder: (context, scrollController) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                physics: NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(
+                    0, MediaQuery.of(context).padding.top, 0, 72),
+                child: Column(
+                  children: <Widget>[
+                    for (int i = 0; i < 30; i++)
+                      Container(
+                        height: 48,
+                        alignment: Alignment.center,
+                        child: Text('${i + 1}'),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
           Positioned(
             left: 0.0,
             right: 0.0,
             bottom: 0.0,
-            child: Material(
-              color: Theme.of(context).canvasColor,
-              elevation: 16.0,
-              child: Column(
-                children: <Widget>[
-                  TabBar(
-                    labelColor: Theme.of(context).colorScheme.onSurface,
-                    controller: _tabController,
-                    indicatorColor: Theme.of(context).colorScheme.onSurface,
-                    indicatorSize: TabBarIndicatorSize.label,
-                    isScrollable: true,
-                    tabs: <Widget>[
-                      for (String name in stallList)
-                        SizedBox(
-                          height: 48.0,
-                          child: Tab(
-                            text: name,
-                          ),
-                        ),
+            child: IgnorePointer(
+              ignoring: viewOrder,
+              child: AnimatedOpacity(
+                opacity: viewOrder ? 0 : 1,
+                duration: Duration(milliseconds: 200),
+                child: Material(
+                  color: Theme.of(context).canvasColor,
+                  child: Column(
+                    children: <Widget>[
+                      TabBar(
+                        labelColor: Theme.of(context).colorScheme.onSurface,
+                        controller: _tabController,
+                        indicatorColor: Theme.of(context).colorScheme.onSurface,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        isScrollable: true,
+                        tabs: <Widget>[
+                          for (String name in stallList)
+                            SizedBox(
+                              height: 48.0,
+                              child: Tab(
+                                text: name,
+                              ),
+                            ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: MediaQuery.of(context).padding.bottom,
+                      ),
                     ],
                   ),
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.bottom,
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -232,17 +209,19 @@ class _HomeState extends State<Home> with TickerProviderStateMixin {
 
 class Stall extends StatefulWidget {
   final String name;
+
   Stall({@required this.name});
+
   @override
-  StallState createState() => StallState();
+  _StallState createState() => _StallState();
 }
 
-class StallState extends State<Stall> {
+class _StallState extends State<Stall> {
   ScrollController scrollController = ScrollController();
 
   @override
   Widget build(BuildContext context) {
-    print(context);
+    ViewOrder viewOrder = Provider.of<ViewOrder>(context);
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: Stack(
@@ -263,6 +242,13 @@ class StallState extends State<Stall> {
                     children: <Widget>[
                       StallQueue(
                         stallName: widget.name,
+                        padding: EdgeInsets.only(top: 24),
+                      ),
+                      FlatButton(
+                        child: Text('Toggle View Order'),
+                        onPressed: () {
+                          viewOrder.toggle();
+                        },
                       ),
                       Padding(
                         padding: EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 72.0),
