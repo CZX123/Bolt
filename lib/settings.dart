@@ -8,6 +8,7 @@ class SettingsWidget extends StatefulWidget {
 
 class _SettingsWidgetState extends State<SettingsWidget> {
   bool randomToggle = false;
+
   @override
   Widget build(BuildContext context) {
     return ListView(
