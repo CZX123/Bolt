@@ -33,11 +33,11 @@ dev_dependencies:
   flutter_launcher_icons: ^0.7.2
 
 flutter_icons:
-  image_path_android: 'icons/png/icon.png'
+  image_path_android: 'icons/png/icon-android.png'
   image_path_ios: 'icons/png/icon-ios.png'
   android: true
   ios: true
-  adaptive_icon_background: '#ffdf00'
+  adaptive_icon_background: 'icons/png/adaptive-icon-background.png'
   adaptive_icon_foreground: 'icons/png/adaptive-icon-foreground-white.png'
 # For information on the generic Dart part of this file, see the
 # following page: https://www.dartlang.org/tools/pub/pubspec
