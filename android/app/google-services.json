@@ -8,9 +8,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:807187902976:android:6c273207d3575447",
+        "mobilesdk_app_id": "1:807187902976:android:48d7548a5d49f397",
         "android_client_info": {
-          "package_name": "com.example.bolt"
+          "package_name": "com.hci.bolt"
         }
       },
       "oauth_client": [
@@ -30,6 +30,13 @@
             {
               "client_id": "807187902976-7av6iahelhpl25mptsejpc8rgoolht3e.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "807187902976-qqgs8mh577c9jrbuais3bb1uu03qpsni.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.hci.bolt"
+              }
             }
           ]
         }

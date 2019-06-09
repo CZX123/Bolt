@@ -1,4 +1,4 @@
-package com.example.bolt;
+package com.hci.bolt;
 
 import android.os.Bundle;
 import io.flutter.app.FlutterActivity;

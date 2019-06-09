@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>807187902976-988j49p3rd1ee882olipa412nnhibbqg.apps.googleusercontent.com</string>
+	<string>807187902976-qqgs8mh577c9jrbuais3bb1uu03qpsni.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.807187902976-988j49p3rd1ee882olipa412nnhibbqg</string>
+	<string>com.googleusercontent.apps.807187902976-qqgs8mh577c9jrbuais3bb1uu03qpsni</string>
 	<key>API_KEY</key>
 	<string>AIzaSyAKqHH4qXvZClRTZOm9EvteKNabJz7QY1o</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.bolt</string>
+	<string>com.hci.bolt</string>
 	<key>PROJECT_ID</key>
 	<string>bolt12345</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,7 +29,7 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:807187902976:ios:6c273207d3575447</string>
+	<string>1:807187902976:ios:48d7548a5d49f397</string>
 	<key>DATABASE_URL</key>
 	<string>https://bolt12345.firebaseio.com</string>
 </dict>
