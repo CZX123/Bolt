@@ -207,6 +207,21 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
     );
   }
 
+  // See: https://github.com/flutter/flutter/issues/25827
+  // Below is required to update the windowHeight from 0 to the actual height
+  @override
+  void didUpdateWidget(CustomBottomSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.windowHeight != widget.windowHeight) {
+      initialY = widget.windowHeight - widget.headerHeight;
+      animationValue = Tween<Offset>(
+        begin: Offset(0, 0), // sheet is fully expanded
+        end: Offset(
+            0, initialY / widget.windowHeight), // sheet is hidden at bottom
+      ).animate(animationController);
+    }
+  }
+
   @override
   void dispose() {
     animationController.dispose();
