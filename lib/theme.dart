@@ -2,79 +2,55 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ThemeState extends ChangeNotifier {
-  ThemeState();
+class ThemeNotifier with ChangeNotifier {
+  ThemeNotifier();
 
-  int _themeCode = 0;
-
-  Brightness _inverseBrightness(Brightness brightness) {
-    return brightness == Brightness.light ? Brightness.dark : Brightness.light;
-  }
-
-  void setThemeCode(int newCode) {
-    // make navigation bar same collor as bottom sheet color
-    SystemChrome.setSystemUIOverlayStyle(
-      SystemUiOverlayStyle(
-        systemNavigationBarColor: themeList[newCode].canvasColor,
-        systemNavigationBarIconBrightness: _inverseBrightness(themeList[newCode].brightness),
-      ),
-    );
-    // Save the new theme code to device storage
+  bool _isDarkMode = false;
+  set isDarkMode(bool value) {
+    _isDarkMode = value;
+    _currentThemeData = themeList[value ? 1 : 0];
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setInt('themeCode', newCode);
+      prefs.setBool('isDarkMode', value);
     });
-    _themeCode = newCode;
     notifyListeners();
   }
+  bool get isDarkMode => _isDarkMode;
 
-  int get themeCode => _themeCode;
+  ThemeData _currentThemeData = themeList[0];
+  ThemeData get currentThemeData => _currentThemeData;
 }
 
 // light theme
 // dark theme
-// black theme (for OLED screens)
 List<ThemeData> themeList = [
   ThemeData(
     platform: TargetPlatform.iOS,
     fontFamily: 'Manrope',
     brightness: Brightness.light,
-    primaryColor: Colors.blue[800],
-    accentColor: Colors.yellowAccent,
-    scaffoldBackgroundColor: Colors.grey[50],
+    primaryColor: Color(0xFFFFC800),
+    accentColor: Color(0xFF2176FF),
+    scaffoldBackgroundColor: Color(0xFFFCFAF4),
+    canvasColor: Color(0xFFF9F6EA),
     textTheme: textTheme.merge(lightThemeText),
-    toggleableActiveColor: Colors.yellowAccent,
+    toggleableActiveColor: Color(0xFF2176FF),
   ),
   ThemeData(
     platform: TargetPlatform.iOS,
     fontFamily: 'Manrope',
     brightness: Brightness.dark,
-    primaryColor: Colors.blue[800],
-    accentColor: Colors.yellowAccent,
-    scaffoldBackgroundColor: Colors.grey[900],
-    canvasColor: Colors.grey[850],
+    primaryColor: Color(0xFF2176FF),
+    accentColor: Color(0xFFFFC800),
+    scaffoldBackgroundColor: Color(0xFF000A14),
+    canvasColor: Color(0xFF020F1C),
     appBarTheme: AppBarTheme(
-      color: Colors.blue[800],
+      color: Color(0xFF0A1826),
     ),
     textTheme: textTheme.merge(darkThemeText),
-    toggleableActiveColor: Colors.yellowAccent,
-  ),
-  ThemeData(
-    platform: TargetPlatform.iOS,
-    fontFamily: 'Manrope',
-    brightness: Brightness.dark,
-    primaryColor: Colors.blue[800],
-    accentColor: Colors.yellowAccent,
-    scaffoldBackgroundColor: Colors.black,
-    canvasColor: Colors.grey[900],
-    appBarTheme: AppBarTheme(
-      color: Colors.blue[800],
-    ),
-    textTheme: textTheme.merge(darkThemeText),
-    toggleableActiveColor: Colors.yellowAccent,
+    toggleableActiveColor: Color(0xFFFFC800),
   ),
 ];
 
-TextTheme textTheme = const TextTheme().copyWith(
+TextTheme textTheme = const TextTheme(
   body1: const TextStyle(
     height: 0.8,
   ),
