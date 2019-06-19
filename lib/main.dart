@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +12,7 @@ import 'dart:ui';
 import 'src/stall.dart';
 import 'src/stall_data.dart';
 import 'src/order.dart';
+import 'src/firebase/firebase.dart';
 
 void main() async {
   // force app to be only in portrait mode, and upright
@@ -37,7 +39,21 @@ class _BoltAppState extends State<BoltApp> {
         ChangeNotifierProvider.value(
           value: ThemeNotifier(),
         ),
-        // Provider for all values in FirebaseDatabase. All other providers for indivual keys in the database listen to this main provider and update accordingly.
+        StreamProvider<FirebaseConnectionState>(
+          initialData: FirebaseConnectionState.connected,
+          builder: (context) {
+            return FirebaseDatabase.instance
+                .reference()
+                .child('.info/connected')
+                .onValue
+                .map((event) {
+              return event.snapshot.value
+                  ? FirebaseConnectionState.connected
+                  : FirebaseConnectionState.disconnected;
+            });
+          },
+        ),
+        // Provider for all values in FirebaseDatabase. This provider updates whenever database value changes (which is quite frequently). All other providers for indivual values in the database listen to this main provider and update accordingly.
         StreamProvider<List<StallData>>(
           builder: (context) => FirebaseDatabase.instance
                   .reference()
@@ -53,7 +69,6 @@ class _BoltAppState extends State<BoltApp> {
                     })
                     .keys
                     .toList();
-                print(stallDataList);
                 return stallDataList;
               }),
           catchError: (context, object) {
@@ -62,12 +77,21 @@ class _BoltAppState extends State<BoltApp> {
           },
         ),
         // Provider for the list of stall names. This should be rarely updated.
-        ProxyProvider<List<StallData>, List<String>>(
-          builder: (context, stallDataList, stallList) {
+        ProxyProvider<List<StallData>, List<StallNameAndImage>>(
+          builder: (context, stallDataList, stallNameAndImage) {
             if (stallDataList == null) return null;
-            return stallDataList.map((stallData) => stallData.name).toList();
+            return stallDataList
+                .map((stallData) => StallNameAndImage.fromStallData(stallData))
+                .toList();
           },
-          updateShouldNotify: (list1, list2) => list1 != list2,
+          updateShouldNotify: (list1, list2) {
+            if (list1?.length != list2?.length) return true;
+            int i = -1;
+            return !list1.every((item) {
+              i++;
+              return item.name == list2[i].name && item.image == list2[i].image;
+            });
+          },
           dispose: (context, list) => list == null,
         ),
         // ChangeNotifierProvider(
@@ -107,7 +131,8 @@ class _HomeState extends State<Home> {
     if (notification.depth == 0 && notification is ScrollUpdateNotification) {
       if (follower.offset != leader.offset) {
         offsetNotifier.value = leader.offset;
-        follower.position.jumpToWithoutSettling(leader.offset);
+        follower.position.jumpToWithoutSettling(
+            leader.offset); // ignore deprecated use, no other easier way
       }
     }
     return false;
@@ -146,230 +171,126 @@ class _HomeState extends State<Home> {
         drawer: Drawer(
           child: SettingsPage(),
         ),
-        body: Consumer<List<String>>(
-          builder: (context, stallList, child) {
-            if (stallList == null) return SizedBox();
-            scrollControllers = [for (var _ in stallList) ScrollController()];
-            return Stack(
-              children: <Widget>[
-                CustomBottomSheet(
-                  enableLocalHistoryEntry: false,
-                  swipeArea: SwipeArea.entireScreen,
-                  overscrollAfterUpwardDrag: true,
-                  overscrollAfterDownwardDrag: true,
-                  pageController: mainPageController,
-                  controllers: scrollControllers,
-                  headerHeight: MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).size.width / 2560 * 1600,
-                  backgroundContentBuilder:
-                      (context, defaultAnimation, animation) {
-                    return NotificationListener<ScrollNotification>(
-                      onNotification: (notification) => _handlePageNotification(
-                          notification,
-                          stallImagesPageController,
-                          mainPageController),
-                      child: PageView(
-                        controller: stallImagesPageController,
-                        children: <Widget>[
-                          for (int i = 0; i < stallList.length; i++)
-                            StallImage(
-                              key: ObjectKey(stallList[i]),
-                              offsetNotifier: offsetNotifier,
-                              index: i,
-                              stallName: stallList[i],
-                              animation: animation,
-                              defaultAnimation: defaultAnimation,
-                              pageController: stallImagesPageController,
-                              last: i == stallList.length - 1,
-                            ),
-                        ],
-                      ),
-                      // child: AnimatedBuilder(
-                      //     animation: animation,
-                      //     child: FadeInImage(
-                      //       placeholder: MemoryImage(kTransparentImage),
-                      //       image: NetworkImage(
-                      //         'https://firebasestorage.googleapis.com/v0/b/bolt12345.appspot.com/o/stall.jpg?alt=media&token=02392581-982b-4a9f-896b-61f46225e2af',
-                      //       ),
-                      //       fit: BoxFit.cover,
-                      //     ),
-                      //     builder: (context, child) {
-                      //       double height;
-                      //       double y = 0;
-                      //       if (animation.value < 0)
-                      //         height = defaultAnimation.value *
-                      //                 MediaQuery.of(context).size.height +
-                      //             32;
-                      //       else {
-                      //         height = MediaQuery.of(context).size.width /
-                      //                 2560 *
-                      //                 1600 +
-                      //             32;
-                      //         y = animation.value *
-                      //             -(MediaQuery.of(context).size.width /
-                      //                     2560 *
-                      //                     1600 +
-                      //                 32) /
-                      //             2;
-                      //       }
-                      //       return Container(
-                      //         height: height,
-                      //         child: PageView(
-                      //           controller: stallImagesPageController,
-                      //           children: <Widget>[
-                      //             for (var _ in stallList)
-                      //               Transform.translate(
-                      //                 offset: Offset(0, y),
-                      //                 child: child,
-                      //               ),
-                      //           ],
-                      //         ),
-                      //       );
-                      //     }),
-                    );
-                  },
-                  headerBuilder: (context, animation, expandSheetCallback,
-                      innerBoxIsScrolled) {
-                    return ValueListenableBuilder<bool>(
-                      valueListenable: innerBoxIsScrolled,
-                      builder: (context, value, child) {
-                        return Material(
-                          borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16)),
-                          color: Theme.of(context).canvasColor,
-                          elevation: value ? 8 : 0,
-                          child: child,
-                        );
-                      },
-                      child: AnimatedBuilder(
-                        animation: animation,
-                        builder: (context, child) {
-                          return Padding(
-                            padding: EdgeInsets.only(
-                                top: animation.value
-                                        .clamp(0.0, double.infinity) *
-                                    windowPadding.top),
+        body: Consumer<List<StallNameAndImage>>(
+          builder: (context, stallNamesAndImages, child) {
+            Widget element = Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  CircularProgressIndicator(),
+                  if (Provider.of<FirebaseConnectionState>(context) ==
+                      FirebaseConnectionState.disconnected)
+                    Column(
+                      children: <Widget>[
+                        const SizedBox(height: 32),
+                        Text('Oh No!',
+                            style: Theme.of(context).textTheme.display2),
+                        const SizedBox(height: 8),
+                        const Text("Internet is down!"),
+                      ],
+                    ),
+                ],
+              ),
+            );
+            if (stallNamesAndImages != null) {
+              scrollControllers = [for (var _ in stallNamesAndImages) ScrollController()];
+              element = Stack(
+                children: <Widget>[
+                  CustomBottomSheet(
+                    enableLocalHistoryEntry: false,
+                    swipeArea: SwipeArea.entireScreen,
+                    overscrollAfterUpwardDrag: true,
+                    overscrollAfterDownwardDrag: true,
+                    pageController: mainPageController,
+                    controllers: scrollControllers,
+                    headerHeight: MediaQuery.of(context).size.height -
+                        MediaQuery.of(context).size.width / 2560 * 1600,
+                    backgroundContentBuilder:
+                        (context, defaultAnimation, animation) {
+                      return NotificationListener<ScrollNotification>(
+                        onNotification: (notification) =>
+                            _handlePageNotification(notification,
+                                stallImagesPageController, mainPageController),
+                        child: PageView(
+                          controller: stallImagesPageController,
+                          children: <Widget>[
+                            for (int i = 0; i < stallNamesAndImages.length; i++)
+                              StallImage(
+                                key: ObjectKey(stallNamesAndImages[i].name),
+                                offsetNotifier: offsetNotifier,
+                                index: i,
+                                stallName: stallNamesAndImages[i].name,
+                                animation: animation,
+                                defaultAnimation: defaultAnimation,
+                                pageController: stallImagesPageController,
+                                last: i == stallNamesAndImages.length - 1,
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                    headerBuilder: (context, animation, expandSheetCallback,
+                        innerBoxIsScrolled) {
+                      return ValueListenableBuilder<bool>(
+                        valueListenable: innerBoxIsScrolled,
+                        builder: (context, value, child) {
+                          return Material(
+                            borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(16),
+                                topRight: Radius.circular(16)),
+                            color: Theme.of(context).canvasColor,
+                            elevation: value ? 8 : 0,
                             child: child,
                           );
                         },
-                        child: CustomTabBar(
-                          offsetNotifier: offsetNotifier,
-                          pageController: mainPageController,
-                          tabs: [for (var name in stallList) name],
+                        child: AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) {
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                  top: animation.value
+                                          .clamp(0.0, double.infinity) *
+                                      windowPadding.top),
+                              child: child,
+                            );
+                          },
+                          child: CustomTabBar(
+                            offsetNotifier: offsetNotifier,
+                            pageController: mainPageController,
+                            tabs: [for (var s in stallNamesAndImages) s.name],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  contentBuilder: (context, animation) {
-                    return NotificationListener<ScrollNotification>(
-                      onNotification: (notification) => _handlePageNotification(
-                          notification,
-                          mainPageController,
-                          stallImagesPageController),
-                      child: PageView(
-                        controller: mainPageController,
-                        children: <Widget>[
-                          for (int i = 0; i < stallList.length; i++)
-                            Stall(
-                              name: stallList[i],
-                              animation: animation,
-                              scrollController: scrollControllers[i],
-                            ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                ViewOrderScreen(),
-              ],
+                      );
+                    },
+                    contentBuilder: (context, animation) {
+                      return NotificationListener<ScrollNotification>(
+                        onNotification: (notification) =>
+                            _handlePageNotification(notification,
+                                mainPageController, stallImagesPageController),
+                        child: PageView(
+                          controller: mainPageController,
+                          children: <Widget>[
+                            for (int i = 0; i < stallNamesAndImages.length; i++)
+                              Stall(
+                                name: stallNamesAndImages[i].name,
+                                animation: animation,
+                                scrollController: scrollControllers[i],
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  ViewOrderScreen(),
+                ],
+              );
+            }
+            return AnimatedSwitcher(
+              switchOutCurve: Interval(0.5, 1, curve: Curves.easeIn),
+              switchInCurve: Interval(0.5, 1, curve: Curves.easeOut),
+              duration: Duration(milliseconds: 500),
+              child: element,
             );
-            // return AnimatedOpacity(
-            //   duration: Duration(milliseconds: 1000),
-            //   opacity: stallList == null ? 0 : 1,
-            //   child: Stack(
-            //     children: <Widget>[
-            //       TabBarView(
-            //         controller: _tabController,
-            //         children: <Widget>[
-            //           if (stallList != null)
-            //             for (String name in stallList)
-            //               Stall(
-            //                 name: name,
-            //               ),
-            //         ],
-            //       ),
-            //       CustomBottomSheet(
-            //         headerHeight: 52 + 52 + windowPadding.bottom,
-            //         windowHeight: MediaQuery.of(context).size.height,
-            //         headerBuilder: (context, viewSheet) => Column(
-            //               children: <Widget>[
-            //                 Material(
-            //                   type: MaterialType.transparency,
-            //                   child: TabBar(
-            //                     unselectedLabelStyle: Theme.of(context).textTheme.body1.copyWith(
-            //                       textBaseline: TextBaseline.ideographic,
-            //                       fontSize: 12,
-            //                       color: Colors.black38,
-            //                     ),
-            //                     labelColor:
-            //                         Theme.of(context).colorScheme.onSurface,
-            //                     controller: _tabController,
-            //                     indicator: BoxDecoration(),
-            //                     isScrollable: true,
-            //                     tabs: <Widget>[
-            //                       if (stallList != null)
-            //                         for (String name in stallList)
-            //                           SizedBox(
-            //                             height: 48.0,
-            //                             child: Tab(
-            //                               child: Container(
-            //                                 height: 36,
-            //                                 alignment: Alignment(0, 0.5),
-            //                                 child: Text(name),
-            //                               ),
-            //                               //text: name,
-            //                             ),
-            //                           ),
-            //                     ],
-            //                   ),
-            //                 ),
-            //                 FlatButton(
-            //                   textColor: Theme.of(context).primaryColor,
-            //                   child: Container(
-            //                     height: 52,
-            //                     width: MediaQuery.of(context).size.width,
-            //                     alignment: Alignment.center,
-            //                     child: Text('View Order'),
-            //                   ),
-            //                   onPressed: viewSheet,
-            //                 ),
-            //                 SizedBox(
-            //                   height: windowPadding.bottom,
-            //                 ),
-            //               ],
-            //             ),
-            //         contentBuilder: (context, scrollController) {
-            //           return SingleChildScrollView(
-            //             controller: scrollController,
-            //             physics: NeverScrollableScrollPhysics(),
-            //             padding: EdgeInsets.fromLTRB(0, windowPadding.top, 0, 72),
-            //             child: Column(
-            //               children: <Widget>[
-            //                 for (int i = 0; i < 30; i++)
-            //                   Container(
-            //                     height: 48,
-            //                     alignment: Alignment.center,
-            //                     child: Text('${i + 1}'),
-            //                   ),
-            //               ],
-            //             ),
-            //           );
-            //         },
-            //       ),
-            //     ],
-            //   ),
-            // );
           },
         ),
       ),

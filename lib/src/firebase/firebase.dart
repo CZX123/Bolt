@@ -1,0 +1,2 @@
+
+enum FirebaseConnectionState { connected, disconnected }

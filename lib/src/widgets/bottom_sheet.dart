@@ -394,7 +394,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       double oldIntialValue = initialValue;
       headerHeight = widget.headerHeight;
       initialValue = 1 - headerHeight / windowHeight;
-      if (animationController.value == oldIntialValue)
+      if (animationController.value >= oldIntialValue || animationController.value >= initialValue)
         animationController.animateBack(initialValue,
             duration: widget.headerHeightTransitionDuration,
             curve: widget.headerHeightTransitionCurve);

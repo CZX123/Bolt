@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 // Example Data:
 dynamic _exampleData = {
   'japanese': {
@@ -14,11 +12,23 @@ dynamic _exampleData = {
     },
     'orders': [
       {
-        '' //TODO
+        '' // TODO: Create a sample order
       },
     ],
   },
 };
+
+class StallNameAndImage {
+  String name;
+  String image;
+  StallNameAndImage({this.name,this.image});
+  factory StallNameAndImage.fromStallData(StallData stallData) {
+    return StallNameAndImage(
+      name: stallData.name,
+      image: stallData.image,
+    );
+  }
+}
 
 class StallData {
   String name;
