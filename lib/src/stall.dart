@@ -248,13 +248,7 @@ class _StallQueueState extends State<StallQueue> {
   }
 }
 
-// typedef HandlePageNotificationCallback = void Function(
-//   ScrollNotification notification,
-//   PageController leader,
-//   PageController follower,
-// );
-
-class StallImage extends StatelessWidget {
+class StallImage extends StatefulWidget {
   final String stallName;
   final int index;
   final ValueNotifier<double> offsetNotifier;
@@ -274,19 +268,59 @@ class StallImage extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  _StallImageState createState() => _StallImageState();
+}
+
+class _StallImageState extends State<StallImage>
+    with AutomaticKeepAliveClientMixin {
+  ImageProvider _imageProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    getApplicationDocumentsDirectory().then((dir) {
+      final String pathName =
+          'stalls/${widget.stallName.toLowerCase()}/image.png';
+      final String filePath = pathName.replaceAll('/', '-');
+      File file = File('${dir.path}/$filePath');
+      file.exists().then((exists) {
+        if (exists) {
+          file.readAsBytes().then((data) {
+            setState(() => _imageProvider = MemoryImage(data));
+          });
+        } else {
+          FirebaseStorage.instance
+              .ref()
+              .child(pathName)
+              .getData(10 * 1024 * 1024) // 10 MB max size
+              .then((data) {
+            setState(() => _imageProvider = MemoryImage(data));
+            file.writeAsBytes(data);
+          }).catchError((error) {
+            print(error);
+            setState(() => _imageProvider = AssetImage('assets/images/glitch.jpg'));
+          });
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return AnimatedBuilder(
-      animation: animation,
+      animation: widget.animation,
       builder: (context, child) {
         double height;
         double y = 0;
-        if (animation.value < 0)
-          height =
-              defaultAnimation.value * MediaQuery.of(context).size.height + 32;
+        if (widget.animation.value < 0)
+          height = widget.defaultAnimation.value *
+                  MediaQuery.of(context).size.height +
+              32;
         else {
           final double width = MediaQuery.of(context).size.width;
           height = width / 2560 * 1600 + 32;
-          y = animation.value * -(width / 2560 * 1600 + 32) / 2;
+          y = widget.animation.value * -(width / 2560 * 1600 + 32) / 2;
         }
         return Transform.translate(
           offset: Offset(0, y),
@@ -300,49 +334,66 @@ class StallImage extends StatelessWidget {
         );
       },
       child: ValueListenableBuilder<double>(
-        valueListenable: offsetNotifier,
+        valueListenable: widget.offsetNotifier,
         builder: (context, value, child) {
           final double width = MediaQuery.of(context).size.width;
-          double imageOffset = (value / width - index).clamp(-1, 1) / 2;
+          double imageOffset = (value / width - widget.index).clamp(-1, 1) / 2;
           bool clipping = true;
           double scale = 1;
-          Alignment alignment = Alignment.topLeft;
-          if (index == 0 && imageOffset < 0) {
+          Alignment alignment = Alignment.centerLeft;
+          if (widget.index == 0 && imageOffset < 0) {
             clipping = false;
             scale -= imageOffset;
-          } else if (last && imageOffset > 0) {
+          } else if (widget.last && imageOffset > 0) {
             clipping = false;
-            alignment = Alignment.topRight;
+            alignment = Alignment.centerRight;
             scale += imageOffset;
           }
-          final widget = Transform.translate(
-            offset: Offset(imageOffset * width * (clipping ? 1 : 2), 0),
-            child: Transform.scale(
-              scale: scale,
-              alignment: alignment,
-              child: child,
+          return Material(
+            type: MaterialType.transparency,
+            clipBehavior: clipping ? Clip.hardEdge : Clip.none,
+            child: Transform.translate(
+              offset: Offset(imageOffset * width * (clipping ? 1 : 2), 0),
+              child: Transform.scale(
+                scale: scale,
+                alignment: alignment,
+                child: child,
+              ),
             ),
           );
-          if (clipping)
-            return ClipRect(
-              child: widget,
-            );
-          return widget;
         },
         child: OverflowBox(
+          minWidth: MediaQuery.of(context).size.width,
           maxWidth: double.infinity,
-          child: FadeInImage(
-            fadeInDuration: Duration(milliseconds: 500),
-            placeholder: MemoryImage(kTransparentImage),
-            image: NetworkImage(
-              'https://firebasestorage.googleapis.com/v0/b/bolt12345.appspot.com/o/stall.jpg?alt=media&token=02392581-982b-4a9f-896b-61f46225e2af',
-            ),
-            fit: BoxFit.cover,
+          child: GestureDetector(
+            onLongPress: () {
+              getApplicationDocumentsDirectory().then((dir) {
+                File file = File(
+                    '${dir.path}/stalls-${widget.stallName.toLowerCase()}-image.png');
+                file.exists().then((exists) {
+                  if (exists) {
+                    print('image deleted');
+                    file.delete();
+                  }
+                });
+              });
+            },
+            child: _imageProvider == null
+                ? SizedBox()
+                : FadeInImage(
+                  fadeInDuration: Duration(milliseconds: 400),
+                    placeholder: MemoryImage(kTransparentImage),
+                    image: _imageProvider,
+                    fit: BoxFit.cover,
+                  ),
           ),
         ),
       ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true;
 }
 
 // class StallImage extends StatefulWidget {

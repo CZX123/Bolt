@@ -439,6 +439,10 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       child: AnimatedBuilder(
         animation: animation,
         builder: (context, child) {
+          Animation<ShapeBorder> shapeAnimation = ShapeBorderTween(
+            begin: widget.shape,
+            end: const ContinuousRectangleBorder(),
+          ).animate(animation);
           return Container(
             decoration: BoxDecoration(
               boxShadow: kElevationToShadow[6],
@@ -446,8 +450,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             child: PhysicalShape(
               color: Theme.of(context).canvasColor,
               clipper: ShapeBorderClipper(
-                  shape: widget.shape.lerpTo(
-                      const ContinuousRectangleBorder(), animation.value.clamp(0.0, double.infinity))),
+                shape: animation.value < 0 ? widget.shape : shapeAnimation.value,
+              ),
               clipBehavior: Clip.antiAlias,
               child: child,
             ),

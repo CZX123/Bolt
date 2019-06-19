@@ -9,6 +9,7 @@ import 'src/widgets/bottom_sheet.dart';
 import 'src/widgets/tab_bar.dart';
 import 'dart:ui';
 import 'src/stall.dart';
+import 'src/stall_data.dart';
 import 'src/order.dart';
 
 void main() async {
@@ -30,32 +31,42 @@ class _BoltAppState extends State<BoltApp> {
 
   @override
   Widget build(BuildContext context) {
-    EdgeInsets padding = EdgeInsets.fromWindowPadding(
-            window.viewInsets, window.devicePixelRatio) +
-        EdgeInsets.fromWindowPadding(window.padding, window.devicePixelRatio);
     return MultiProvider(
       providers: [
-        // Provider for window padding values. Combines both viewInsets & padding to reduce code duplication
-        Provider.value(
-          value: padding,
-        ),
         // Provider for ThemeData. Only used in settings, and rebuilding entire MaterialApp
         ChangeNotifierProvider.value(
           value: ThemeNotifier(),
         ),
         // Provider for all values in FirebaseDatabase. All other providers for indivual keys in the database listen to this main provider and update accordingly.
-        StreamProvider<Event>(
-          builder: (context) =>
-              FirebaseDatabase.instance.reference().child('stalls').onValue,
+        StreamProvider<List<StallData>>(
+          builder: (context) => FirebaseDatabase.instance
+                  .reference()
+                  .child('stalls')
+                  .onValue
+                  .map<List<StallData>>((event) {
+                if (event == null) return null;
+                Map<String, dynamic> map =
+                    Map<String, dynamic>.from(event.snapshot.value);
+                var stallDataList = map
+                    .map((key, value) {
+                      return MapEntry(StallData.fromJson(key, value), 0);
+                    })
+                    .keys
+                    .toList();
+                print(stallDataList);
+                return stallDataList;
+              }),
           catchError: (context, object) {
             // TODO: handle errors
             print(object);
           },
         ),
         // Provider for the list of stall names. This should be rarely updated.
-        ProxyProvider<Event, List<dynamic>>(
-          builder: (context, event, length) =>
-              event?.snapshot?.value?.keys?.toList(),
+        ProxyProvider<List<StallData>, List<String>>(
+          builder: (context, stallDataList, stallList) {
+            if (stallDataList == null) return null;
+            return stallDataList.map((stallData) => stallData.name).toList();
+          },
           updateShouldNotify: (list1, list2) => list1 != list2,
           dispose: (context, list) => list == null,
         ),
@@ -85,6 +96,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  EdgeInsets windowPadding;
   PageController stallImagesPageController = PageController();
   PageController mainPageController = PageController();
   List<ScrollController> scrollControllers;
@@ -111,6 +123,13 @@ class _HomeState extends State<Home> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    windowPadding =
+        MediaQuery.of(context).padding + MediaQuery.of(context).viewInsets;
+  }
+
+  @override
   void dispose() {
     stallImagesPageController.dispose();
     mainPageController.dispose();
@@ -120,235 +139,239 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      drawer: Drawer(
-        child: SettingsPage(),
-      ),
-      body: Consumer<List<dynamic>>(
-        builder: (context, stallList, child) {
-          if (stallList == null) return SizedBox();
-          scrollControllers = [for (var _ in stallList) ScrollController()];
-          return Stack(
-            children: <Widget>[
-              CustomBottomSheet(
-                enableLocalHistoryEntry: false,
-                swipeArea: SwipeArea.entireScreen,
-                overscrollAfterUpwardDrag: true,
-                overscrollAfterDownwardDrag: true,
-                pageController: mainPageController,
-                controllers: scrollControllers,
-                headerHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).size.width / 2560 * 1600,
-                backgroundContentBuilder:
-                    (context, defaultAnimation, animation) {
-                  return NotificationListener<ScrollNotification>(
-                    onNotification: (notification) => _handlePageNotification(
-                        notification,
-                        stallImagesPageController,
-                        mainPageController),
-                    child: PageView(
-                      controller: stallImagesPageController,
-                      children: <Widget>[
-                        for (int i = 0; i < stallList.length; i++)
-                          StallImage(
-                            offsetNotifier: offsetNotifier,
-                            index: i,
-                            stallName: '${stallList[i]}',
-                            animation: animation,
-                            defaultAnimation: defaultAnimation,
-                            pageController: stallImagesPageController,
-                            last: i == stallList.length - 1,
-                          ),
+    return Provider.value(
+      value: windowPadding,
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        drawer: Drawer(
+          child: SettingsPage(),
+        ),
+        body: Consumer<List<String>>(
+          builder: (context, stallList, child) {
+            if (stallList == null) return SizedBox();
+            scrollControllers = [for (var _ in stallList) ScrollController()];
+            return Stack(
+              children: <Widget>[
+                CustomBottomSheet(
+                  enableLocalHistoryEntry: false,
+                  swipeArea: SwipeArea.entireScreen,
+                  overscrollAfterUpwardDrag: true,
+                  overscrollAfterDownwardDrag: true,
+                  pageController: mainPageController,
+                  controllers: scrollControllers,
+                  headerHeight: MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).size.width / 2560 * 1600,
+                  backgroundContentBuilder:
+                      (context, defaultAnimation, animation) {
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) => _handlePageNotification(
+                          notification,
+                          stallImagesPageController,
+                          mainPageController),
+                      child: PageView(
+                        controller: stallImagesPageController,
+                        children: <Widget>[
+                          for (int i = 0; i < stallList.length; i++)
+                            StallImage(
+                              key: ObjectKey(stallList[i]),
+                              offsetNotifier: offsetNotifier,
+                              index: i,
+                              stallName: stallList[i],
+                              animation: animation,
+                              defaultAnimation: defaultAnimation,
+                              pageController: stallImagesPageController,
+                              last: i == stallList.length - 1,
+                            ),
                         ],
-                    ),
-                    // child: AnimatedBuilder(
-                    //     animation: animation,
-                    //     child: FadeInImage(
-                    //       placeholder: MemoryImage(kTransparentImage),
-                    //       image: NetworkImage(
-                    //         'https://firebasestorage.googleapis.com/v0/b/bolt12345.appspot.com/o/stall.jpg?alt=media&token=02392581-982b-4a9f-896b-61f46225e2af',
-                    //       ),
-                    //       fit: BoxFit.cover,
-                    //     ),
-                    //     builder: (context, child) {
-                    //       double height;
-                    //       double y = 0;
-                    //       if (animation.value < 0)
-                    //         height = defaultAnimation.value *
-                    //                 MediaQuery.of(context).size.height +
-                    //             32;
-                    //       else {
-                    //         height = MediaQuery.of(context).size.width /
-                    //                 2560 *
-                    //                 1600 +
-                    //             32;
-                    //         y = animation.value *
-                    //             -(MediaQuery.of(context).size.width /
-                    //                     2560 *
-                    //                     1600 +
-                    //                 32) /
-                    //             2;
-                    //       }
-                    //       return Container(
-                    //         height: height,
-                    //         child: PageView(
-                    //           controller: stallImagesPageController,
-                    //           children: <Widget>[
-                    //             for (var _ in stallList)
-                    //               Transform.translate(
-                    //                 offset: Offset(0, y),
-                    //                 child: child,
-                    //               ),
-                    //           ],
-                    //         ),
-                    //       );
-                    //     }),
-                  );
-                },
-                headerBuilder: (context, animation, expandSheetCallback,
-                    innerBoxIsScrolled) {
-                  return ValueListenableBuilder<bool>(
-                    valueListenable: innerBoxIsScrolled,
-                    builder: (context, value, child) {
-                      return Material(
-                        borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16)),
-                        color: Theme.of(context).canvasColor,
-                        elevation: value ? 8 : 0,
-                        child: child,
-                      );
-                    },
-                    child: AnimatedBuilder(
-                      animation: animation,
-                      builder: (context, child) {
-                        return Padding(
-                          padding: EdgeInsets.only(
-                              top: animation.value.clamp(0.0, double.infinity) *
-                                  windowPadding.top),
+                      ),
+                      // child: AnimatedBuilder(
+                      //     animation: animation,
+                      //     child: FadeInImage(
+                      //       placeholder: MemoryImage(kTransparentImage),
+                      //       image: NetworkImage(
+                      //         'https://firebasestorage.googleapis.com/v0/b/bolt12345.appspot.com/o/stall.jpg?alt=media&token=02392581-982b-4a9f-896b-61f46225e2af',
+                      //       ),
+                      //       fit: BoxFit.cover,
+                      //     ),
+                      //     builder: (context, child) {
+                      //       double height;
+                      //       double y = 0;
+                      //       if (animation.value < 0)
+                      //         height = defaultAnimation.value *
+                      //                 MediaQuery.of(context).size.height +
+                      //             32;
+                      //       else {
+                      //         height = MediaQuery.of(context).size.width /
+                      //                 2560 *
+                      //                 1600 +
+                      //             32;
+                      //         y = animation.value *
+                      //             -(MediaQuery.of(context).size.width /
+                      //                     2560 *
+                      //                     1600 +
+                      //                 32) /
+                      //             2;
+                      //       }
+                      //       return Container(
+                      //         height: height,
+                      //         child: PageView(
+                      //           controller: stallImagesPageController,
+                      //           children: <Widget>[
+                      //             for (var _ in stallList)
+                      //               Transform.translate(
+                      //                 offset: Offset(0, y),
+                      //                 child: child,
+                      //               ),
+                      //           ],
+                      //         ),
+                      //       );
+                      //     }),
+                    );
+                  },
+                  headerBuilder: (context, animation, expandSheetCallback,
+                      innerBoxIsScrolled) {
+                    return ValueListenableBuilder<bool>(
+                      valueListenable: innerBoxIsScrolled,
+                      builder: (context, value, child) {
+                        return Material(
+                          borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16)),
+                          color: Theme.of(context).canvasColor,
+                          elevation: value ? 8 : 0,
                           child: child,
                         );
                       },
-                      child: CustomTabBar(
-                        offsetNotifier: offsetNotifier,
-                        pageController: mainPageController,
-                        tabs: [for (var name in stallList) '$name'],
+                      child: AnimatedBuilder(
+                        animation: animation,
+                        builder: (context, child) {
+                          return Padding(
+                            padding: EdgeInsets.only(
+                                top: animation.value
+                                        .clamp(0.0, double.infinity) *
+                                    windowPadding.top),
+                            child: child,
+                          );
+                        },
+                        child: CustomTabBar(
+                          offsetNotifier: offsetNotifier,
+                          pageController: mainPageController,
+                          tabs: [for (var name in stallList) name],
+                        ),
                       ),
-                    ),
-                  );
-                },
-                contentBuilder: (context, animation) {
-                  return NotificationListener<ScrollNotification>(
-                    onNotification: (notification) => _handlePageNotification(
-                        notification,
-                        mainPageController,
-                        stallImagesPageController),
-                    child: PageView(
-                      controller: mainPageController,
-                      children: <Widget>[
-                        for (int i = 0; i < stallList.length; i++)
-                          Stall(
-                            name: '${stallList[i]}',
-                            animation: animation,
-                            scrollController: scrollControllers[i],
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              ViewOrderScreen(),
-            ],
-          );
-          // return AnimatedOpacity(
-          //   duration: Duration(milliseconds: 1000),
-          //   opacity: stallList == null ? 0 : 1,
-          //   child: Stack(
-          //     children: <Widget>[
-          //       TabBarView(
-          //         controller: _tabController,
-          //         children: <Widget>[
-          //           if (stallList != null)
-          //             for (String name in stallList)
-          //               Stall(
-          //                 name: name,
-          //               ),
-          //         ],
-          //       ),
-          //       CustomBottomSheet(
-          //         headerHeight: 52 + 52 + windowPadding.bottom,
-          //         windowHeight: MediaQuery.of(context).size.height,
-          //         headerBuilder: (context, viewSheet) => Column(
-          //               children: <Widget>[
-          //                 Material(
-          //                   type: MaterialType.transparency,
-          //                   child: TabBar(
-          //                     unselectedLabelStyle: Theme.of(context).textTheme.body1.copyWith(
-          //                       textBaseline: TextBaseline.ideographic,
-          //                       fontSize: 12,
-          //                       color: Colors.black38,
-          //                     ),
-          //                     labelColor:
-          //                         Theme.of(context).colorScheme.onSurface,
-          //                     controller: _tabController,
-          //                     indicator: BoxDecoration(),
-          //                     isScrollable: true,
-          //                     tabs: <Widget>[
-          //                       if (stallList != null)
-          //                         for (String name in stallList)
-          //                           SizedBox(
-          //                             height: 48.0,
-          //                             child: Tab(
-          //                               child: Container(
-          //                                 height: 36,
-          //                                 alignment: Alignment(0, 0.5),
-          //                                 child: Text(name),
-          //                               ),
-          //                               //text: name,
-          //                             ),
-          //                           ),
-          //                     ],
-          //                   ),
-          //                 ),
-          //                 FlatButton(
-          //                   textColor: Theme.of(context).primaryColor,
-          //                   child: Container(
-          //                     height: 52,
-          //                     width: MediaQuery.of(context).size.width,
-          //                     alignment: Alignment.center,
-          //                     child: Text('View Order'),
-          //                   ),
-          //                   onPressed: viewSheet,
-          //                 ),
-          //                 SizedBox(
-          //                   height: windowPadding.bottom,
-          //                 ),
-          //               ],
-          //             ),
-          //         contentBuilder: (context, scrollController) {
-          //           return SingleChildScrollView(
-          //             controller: scrollController,
-          //             physics: NeverScrollableScrollPhysics(),
-          //             padding: EdgeInsets.fromLTRB(0, windowPadding.top, 0, 72),
-          //             child: Column(
-          //               children: <Widget>[
-          //                 for (int i = 0; i < 30; i++)
-          //                   Container(
-          //                     height: 48,
-          //                     alignment: Alignment.center,
-          //                     child: Text('${i + 1}'),
-          //                   ),
-          //               ],
-          //             ),
-          //           );
-          //         },
-          //       ),
-          //     ],
-          //   ),
-          // );
-        },
+                    );
+                  },
+                  contentBuilder: (context, animation) {
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (notification) => _handlePageNotification(
+                          notification,
+                          mainPageController,
+                          stallImagesPageController),
+                      child: PageView(
+                        controller: mainPageController,
+                        children: <Widget>[
+                          for (int i = 0; i < stallList.length; i++)
+                            Stall(
+                              name: stallList[i],
+                              animation: animation,
+                              scrollController: scrollControllers[i],
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                ViewOrderScreen(),
+              ],
+            );
+            // return AnimatedOpacity(
+            //   duration: Duration(milliseconds: 1000),
+            //   opacity: stallList == null ? 0 : 1,
+            //   child: Stack(
+            //     children: <Widget>[
+            //       TabBarView(
+            //         controller: _tabController,
+            //         children: <Widget>[
+            //           if (stallList != null)
+            //             for (String name in stallList)
+            //               Stall(
+            //                 name: name,
+            //               ),
+            //         ],
+            //       ),
+            //       CustomBottomSheet(
+            //         headerHeight: 52 + 52 + windowPadding.bottom,
+            //         windowHeight: MediaQuery.of(context).size.height,
+            //         headerBuilder: (context, viewSheet) => Column(
+            //               children: <Widget>[
+            //                 Material(
+            //                   type: MaterialType.transparency,
+            //                   child: TabBar(
+            //                     unselectedLabelStyle: Theme.of(context).textTheme.body1.copyWith(
+            //                       textBaseline: TextBaseline.ideographic,
+            //                       fontSize: 12,
+            //                       color: Colors.black38,
+            //                     ),
+            //                     labelColor:
+            //                         Theme.of(context).colorScheme.onSurface,
+            //                     controller: _tabController,
+            //                     indicator: BoxDecoration(),
+            //                     isScrollable: true,
+            //                     tabs: <Widget>[
+            //                       if (stallList != null)
+            //                         for (String name in stallList)
+            //                           SizedBox(
+            //                             height: 48.0,
+            //                             child: Tab(
+            //                               child: Container(
+            //                                 height: 36,
+            //                                 alignment: Alignment(0, 0.5),
+            //                                 child: Text(name),
+            //                               ),
+            //                               //text: name,
+            //                             ),
+            //                           ),
+            //                     ],
+            //                   ),
+            //                 ),
+            //                 FlatButton(
+            //                   textColor: Theme.of(context).primaryColor,
+            //                   child: Container(
+            //                     height: 52,
+            //                     width: MediaQuery.of(context).size.width,
+            //                     alignment: Alignment.center,
+            //                     child: Text('View Order'),
+            //                   ),
+            //                   onPressed: viewSheet,
+            //                 ),
+            //                 SizedBox(
+            //                   height: windowPadding.bottom,
+            //                 ),
+            //               ],
+            //             ),
+            //         contentBuilder: (context, scrollController) {
+            //           return SingleChildScrollView(
+            //             controller: scrollController,
+            //             physics: NeverScrollableScrollPhysics(),
+            //             padding: EdgeInsets.fromLTRB(0, windowPadding.top, 0, 72),
+            //             child: Column(
+            //               children: <Widget>[
+            //                 for (int i = 0; i < 30; i++)
+            //                   Container(
+            //                     height: 48,
+            //                     alignment: Alignment.center,
+            //                     child: Text('${i + 1}'),
+            //                   ),
+            //               ],
+            //             ),
+            //           );
+            //         },
+            //       ),
+            //     ],
+            //   ),
+            // );
+          },
+        ),
       ),
     );
   }
