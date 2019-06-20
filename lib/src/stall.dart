@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'stall_data.dart';
-import 'order.dart';
-import 'transparent_image/transparent_image.dart';
+import 'order_data.dart';
+import 'images/transparent_image.dart';
+import 'images/error_image.dart';
 import 'firebase/firebase.dart';
 
 class Stall extends StatefulWidget {
@@ -44,21 +44,42 @@ class _StallState extends State<Stall> {
           ),
           StallQueue(
             stallName: widget.name,
-            padding: const EdgeInsets.fromLTRB(0, 96, 0, 0),
+            padding: const EdgeInsets.fromLTRB(0, 80, 0, 16),
           ),
-          FlatButton(
-            child: Text('Toggle View Order'),
-            onPressed: () {
-              Provider.of<ViewOrder>(context).toggle();
+          ProxyProvider<List<StallData>, List<MenuItem>>(
+            builder: (context, stallDataList, menuItemList) {
+              return stallDataList
+                  .firstWhere((stallData) => stallData.name == widget.name)
+                  .menu;
             },
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 72.0),
-            child: Wrap(
-              spacing: 8.0,
-              children: <Widget>[
-                for (int i = 0; i < 10; i++) FoodItem(),
-              ],
+            updateShouldNotify: (list1, list2) {
+              if (list1?.length != list2?.length) return true;
+              int i = -1;
+              // Checking if every item in list is equivalent. Normal '==' operator does not work for lists
+              return !list1.every((item) {
+                i++;
+                return item.name == list2[i].name &&
+                    item.image == list2[i].image &&
+                    item.available == list2[i].available &&
+                    item.price == list2[i].price;
+              });
+            },
+            child: Consumer<List<MenuItem>>(
+              builder: (context, menuList, child) {
+                return Padding(
+                  padding: EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 72.0),
+                  child: Wrap(
+                    spacing: 8.0,
+                    children: <Widget>[
+                      for (var item in menuList)
+                        FoodItem(
+                          stallName: widget.name,
+                          menuItem: item,
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -72,7 +93,7 @@ class StallQueue extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   const StallQueue({
     @required this.stallName,
-    this.padding = const EdgeInsets.symmetric(vertical: 24.0),
+    this.padding = const EdgeInsets.symmetric(vertical: 16),
   });
   @override
   Widget build(BuildContext context) {
@@ -83,132 +104,120 @@ class StallQueue extends StatelessWidget {
                 orElse: () => null)
             ?.queue;
       },
-      child: Padding(
-        padding: padding,
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      child: Material(
+        child: Padding(
+          padding: padding,
+          child: Consumer<int>(
+            builder: (context, queue, child) => Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: <Widget>[
-                    Icon(
-                      Icons.accessibility,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Consumer<int>(
-                      builder: (context, queue, child) => Container(
-                            alignment: Alignment.center,
-                            constraints: BoxConstraints(
-                              minWidth: queue != null && queue > 99 ? 27 : 18,
+                    InkWell(
+                      onTap: () {
+                        if (queue != null) {
+                          FirebaseDatabase.instance
+                              .reference()
+                              .child('stalls/${stallName.toLowerCase()}/queue')
+                              .set(queue + 1);
+                        }
+                      },
+                      customBorder: ContinuousRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            Icon(
+                              Icons.accessibility,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            child: AnimatedSwitcher(
-                              switchOutCurve:
-                                  Interval(0.5, 1, curve: Curves.easeIn),
-                              switchInCurve:
-                                  Interval(0.5, 1, curve: Curves.easeOut),
-                              duration: Duration(milliseconds: 300),
-                              child: Text(
-                                queue?.toString() ?? '',
-                                key: ValueKey<int>(queue),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            Container(
+                              alignment: Alignment.center,
+                              constraints: BoxConstraints(
+                                minWidth: queue != null && queue > 99 ? 27 : 18,
+                              ),
+                              child: AnimatedSwitcher(
+                                switchOutCurve:
+                                    Interval(0.5, 1, curve: Curves.easeIn),
+                                switchInCurve:
+                                    Interval(0.5, 1, curve: Curves.easeOut),
+                                duration: Duration(milliseconds: 300),
+                                child: Text(
+                                  queue?.toString() ?? '',
+                                  key: ValueKey<int>(queue),
+                                ),
                               ),
                             ),
-                          ),
-                    ),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    Text('people'),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Icon(
-                      Icons.access_time,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Consumer<int>(
-                      builder: (context, queue, child) => Container(
-                            alignment: Alignment.center,
-                            constraints: BoxConstraints(
-                              minWidth:
-                                  queue != null && queue ~/ 1.5 > 99 ? 27 : 18,
+                            const SizedBox(
+                              width: 4,
                             ),
-                            child: AnimatedSwitcher(
-                              switchOutCurve:
-                                  Interval(0.5, 1, curve: Curves.easeIn),
-                              switchInCurve:
-                                  Interval(0.5, 1, curve: Curves.easeOut),
-                              duration: Duration(milliseconds: 300),
-                              child: Text(
-                                queue != null ? '${queue ~/ 1.5}' : '',
-                                key: ValueKey<int>(queue),
+                            const Text('people'),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 20),
+                      child: InkWell(
+                        onTap: () {
+                          if (queue != null && queue > 0) {
+                            FirebaseDatabase.instance
+                                .reference()
+                                .child(
+                                    'stalls/${stallName.toLowerCase()}/queue')
+                                .set(queue - 1);
+                          }
+                        },
+                        customBorder: ContinuousRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Icon(
+                                Icons.access_time,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
-                            ),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              Container(
+                                alignment: Alignment.center,
+                                constraints: BoxConstraints(
+                                  minWidth: queue != null && queue ~/ 1.5 > 99
+                                      ? 27
+                                      : 18,
+                                ),
+                                child: AnimatedSwitcher(
+                                  switchOutCurve:
+                                      Interval(0.5, 1, curve: Curves.easeIn),
+                                  switchInCurve:
+                                      Interval(0.5, 1, curve: Curves.easeOut),
+                                  duration: Duration(milliseconds: 300),
+                                  child: Text(
+                                    queue != null ? '${queue ~/ 1.5}' : '',
+                                    key: ValueKey<int>(queue),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 4,
+                              ),
+                              Text('mins'),
+                            ],
                           ),
-                    ),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    Text('mins'),
-                    const SizedBox(
-                      width: 20,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(
-              height: 16,
-            ),
-            Material(
-              color: Colors.transparent,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Consumer<int>(
-                    builder: (context, queue, child) => IconButton(
-                          icon: Icon(Icons.add),
-                          onPressed: () {
-                            if (queue != null) {
-                              FirebaseDatabase.instance
-                                  .reference()
-                                  .child(
-                                      'stalls/${stallName.toLowerCase()}/queue')
-                                  .set(queue + 1);
-                            }
-                          },
-                        ),
-                  ),
-                  const SizedBox(
-                    width: 24.0,
-                  ),
-                  Consumer<int>(
-                    builder: (context, queue, child) => IconButton(
-                          icon: Icon(Icons.remove),
-                          onPressed: () {
-                            if (queue != null && queue > 0) {
-                              FirebaseDatabase.instance
-                                  .reference()
-                                  .child(
-                                      'stalls/${stallName.toLowerCase()}/queue')
-                                  .set(queue - 1);
-                            }
-                          },
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -240,52 +249,9 @@ class StallImage extends StatefulWidget {
 
 class _StallImageState extends State<StallImage>
     with AutomaticKeepAliveClientMixin {
-  ImageProvider _imageProvider;
-
-  @override
-  void initState() {
-    super.initState();
-    getApplicationDocumentsDirectory().then((dir) {
-      final String pathName = Provider.of<List<StallNameAndImage>>(context)
-          .firstWhere((s) => s.name == widget.stallName)
-          .image;
-      final String filePath = pathName.replaceAll('/', '-');
-      File file = File('${dir.path}/$filePath');
-      file.exists().then((exists) {
-        if (exists) {
-          file.readAsBytes().then((data) {
-            setState(() => _imageProvider = MemoryImage(data));
-          });
-        } else {
-          if (Provider.of<FirebaseConnectionState>(context) ==
-              FirebaseConnectionState.disconnected)
-            setState(
-                () => _imageProvider = AssetImage('assets/images/glitch.jpg'));
-          else {
-            FirebaseStorage.instance
-                .ref()
-                .child(pathName)
-                .getData(10 * 1024 * 1024) // 10 MB max size.
-                  ..timeout(Duration(seconds: 10))
-                  ..catchError((error) {
-                    //print(error);
-                    setState(() => _imageProvider =
-                        AssetImage('assets/images/glitch.jpg'));
-                  })
-                  ..then((data) {
-                    setState(() => _imageProvider = MemoryImage(data));
-                    file.writeAsBytes(data);
-                  });
-          }
-        }
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    print('${widget.stallName} Image Rebuilt');
     return AnimatedBuilder(
       animation: widget.animation,
       builder: (context, child) {
@@ -328,7 +294,7 @@ class _StallImageState extends State<StallImage>
             scale += imageOffset;
           }
           return Material(
-            type: MaterialType.transparency,
+            color: Theme.of(context).dividerColor,
             clipBehavior: clipping ? Clip.hardEdge : Clip.none,
             child: Transform.translate(
               offset: Offset(imageOffset * width * (clipping ? 1 : 2), 0),
@@ -357,14 +323,17 @@ class _StallImageState extends State<StallImage>
                 });
               });
             },
-            child: _imageProvider == null
-                ? SizedBox()
-                : FadeInImage(
-                    fadeInDuration: Duration(milliseconds: 400),
-                    placeholder: MemoryImage(kTransparentImage),
-                    image: _imageProvider,
-                    fit: BoxFit.cover,
-                  ),
+            child: FadeInImage(
+              fadeInDuration: Duration(milliseconds: 400),
+              placeholder: MemoryImage(kTransparentImage),
+              image: FirebaseImage(
+                Provider.of<List<StallNameAndImage>>(context)
+                    .firstWhere((s) => s.name == widget.stallName)
+                    .image,
+                fallbackMemoryImage: kErrorLandscapeImage,
+              ),
+              fit: BoxFit.cover,
+            ),
           ),
         ),
       ),
@@ -376,95 +345,179 @@ class _StallImageState extends State<StallImage>
 }
 
 class FoodItem extends StatefulWidget {
-  FoodItem({Key key}) : super(key: key);
+  final String stallName;
+  final MenuItem menuItem;
+  FoodItem({
+    Key key,
+    @required this.stallName,
+    @required this.menuItem,
+  }) : super(key: key);
   _FoodItemState createState() => _FoodItemState();
 }
 
-class _FoodItemState extends State<FoodItem> {
-  double shadow = 0.0;
-  File imageFile;
+class _FoodItemState extends State<FoodItem>
+    with AutomaticKeepAliveClientMixin {
+  double shadow = 0;
+  void Function(Order order) addOrder;
+  void Function(Order order) removeOrder;
+  Order order;
+
   @override
   void initState() {
     super.initState();
-    getTemporaryDirectory().then((dir) {
-      File file = File('${dir.path}/food.jpg');
-      file.exists().then((exists) {
-        if (exists)
-          setState(() => imageFile = file);
-        else {
-          FirebaseStorage.instance
-              .ref()
-              .child('food.jpg')
-              .getData(10 * 1024 * 1024)
-              .then((data) {
-            file.writeAsBytes(data).then((file) {
-              setState(() {
-                imageFile = file;
-              });
-            });
-          });
-        }
-      });
-    });
+    order = Order(stallName: widget.stallName, menuItem: widget.menuItem);
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     double screenWidth = MediaQuery.of(context).size.width;
     double cardWidth = (screenWidth - 8.0 * 3) / 2;
-    return Container(
-      padding: EdgeInsets.symmetric(
-        vertical: 6.0,
-      ),
-      child: Column(
-        children: <Widget>[
-          Material(
-            elevation: shadow,
-            shadowColor: Theme.of(context).brightness == Brightness.dark
-                ? Colors.yellowAccent
-                : Colors.black,
-            borderRadius: BorderRadius.circular(12.0),
-            clipBehavior: Clip.antiAlias,
-            child: AnimatedOpacity(
-              opacity: imageFile != null ? 1.0 : 0.0,
-              duration: Duration(
-                milliseconds: 500,
-              ),
-              child: imageFile != null
-                  ? Ink.image(
-                      width: cardWidth,
-                      height: cardWidth,
-                      fit: BoxFit.cover,
-                      image: FileImage(imageFile),
-                      child: InkWell(
-                        onTap: () {
-                          print('Yay');
-                          setState(() => shadow = 0.0);
-                        },
-                        onTapDown: (_) {
-                          setState(() => shadow = 12.0);
-                        },
-                        onTapCancel: () {
-                          setState(() => shadow = 0.0);
-                        },
-                      ),
-                    )
-                  : SizedBox(
-                      width: cardWidth,
-                      height: cardWidth,
-                    ),
+    return ProxyProvider<OrderNotifier, bool>(
+      initialBuilder: (context) => false,
+      builder: (context, orderNotifier, isOrdered) {
+        final List<Order> orders = orderNotifier.orders;
+        addOrder = orderNotifier.addOrder;
+        removeOrder = orderNotifier.removeOrder;
+        if (orders.isEmpty) return false;
+        return !orders.every((order) {
+          return order.stallName != widget.stallName ||
+              order.menuItem != widget.menuItem;
+        });
+      },
+      dispose: (context, isOrdered) => isOrdered = false,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          vertical: 6.0,
+        ),
+        child: Column(
+          children: <Widget>[
+            Stack(
+              fit: StackFit.passthrough,
+              children: <Widget>[
+                Material(
+                  color: Theme.of(context).dividerColor,
+                  elevation: shadow,
+                  shadowColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.yellowAccent
+                      : Colors.black,
+                  shape: ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: FadeInImage(
+                    fadeInDuration: const Duration(milliseconds: 300),
+                    placeholder: MemoryImage(kTransparentImage),
+                    image: FirebaseImage(widget.menuItem.image,
+                        fallbackMemoryImage: kErrorImage),
+                    height: cardWidth,
+                    width: cardWidth,
+                  ),
+                ),
+                Consumer<bool>(
+                  builder: (context, isOrdered, child) {
+                    return Stack(
+                      fit: StackFit.passthrough,
+                      children: <Widget>[
+                        AnimatedFade(
+                          opacity: isOrdered ? 1 : 0,
+                          child: ClipPath(
+                            clipper: ShapeBorderClipper(
+                              shape: ContinuousRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                            ),
+                            child: Container(
+                              color: Colors.black.withOpacity(0.5),
+                              width: cardWidth,
+                              height: cardWidth,
+                              child: Icon(
+                                Icons.done,
+                                size: 64,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Material(
+                          type: MaterialType.transparency,
+                          shape: ContinuousRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () {
+                              if (isOrdered)
+                                removeOrder(order);
+                              else
+                                addOrder(order);
+                              setState(() => shadow = 0);
+                            },
+                            onTapDown: (_) {
+                              setState(() => shadow = 8);
+                            },
+                            onTapCancel: () {
+                              setState(() => shadow = 0);
+                            },
+                            child: SizedBox(
+                              width: cardWidth,
+                              height: cardWidth,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
-          ),
-          SizedBox(
-            height: 6.0,
-          ),
-          Text('Food'),
-          Text(
-            '\$3.00',
-            style: Theme.of(context).textTheme.subtitle,
-          ),
-        ],
+            SizedBox(
+              height: 6.0,
+            ),
+            Text(widget.menuItem.name),
+            Text(
+              '\$${widget.menuItem.price.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.subtitle,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  @override
+  bool get wantKeepAlive => true;
+}
+
+class AnimatedFade extends ImplicitlyAnimatedWidget {
+  final double opacity;
+  final Widget child;
+
+  AnimatedFade({
+    @required this.opacity,
+    @required this.child,
+    Duration duration: const Duration(milliseconds: 200),
+    Curve curve: Curves.ease,
+    Key key,
+  }) : super(duration: duration, curve: curve, key: key);
+  @override
+  _AnimatedFadeState createState() => _AnimatedFadeState();
+}
+
+class _AnimatedFadeState extends AnimatedWidgetBaseState<AnimatedFade> {
+  Tween<double> _opacityTween;
+
+  @override
+  void forEachTween(visitor) {
+    _opacityTween = visitor(
+        _opacityTween, widget.opacity, (value) => Tween<double>(begin: value));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacityTween.animate(animation),
+      child: widget.child,
     );
   }
 }

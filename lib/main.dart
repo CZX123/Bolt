@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,6 +11,7 @@ import 'dart:ui';
 import 'src/stall.dart';
 import 'src/stall_data.dart';
 import 'src/order.dart';
+import 'src/order_data.dart';
 import 'src/firebase/firebase.dart';
 
 void main() async {
@@ -39,6 +39,12 @@ class _BoltAppState extends State<BoltApp> {
         ChangeNotifierProvider.value(
           value: ThemeNotifier(),
         ),
+        // 3 second delay on startup before app informs user that they do not have internet
+        FutureProvider.value(
+          initialData: false,
+          value: Future.delayed((Duration(seconds: 3)), () => true),
+        ),
+        // This is the provider to check if user is connected to Firebase. Strangely, this returns FirebaseConnectionState.disconnected when app starts, so the delay above is needed.
         StreamProvider<FirebaseConnectionState>(
           initialData: FirebaseConnectionState.connected,
           builder: (context) {
@@ -52,6 +58,18 @@ class _BoltAppState extends State<BoltApp> {
                   : FirebaseConnectionState.disconnected;
             });
           },
+        ),
+        // The provider below is to combine both the delay and actual connection state above to a new FirebaseConnectionState provider that returns FirebaseConnectionState.connected for the first 3 seconds
+        ProxyProvider2<bool, FirebaseConnectionState, FirebaseConnectionState>(
+          initialBuilder: (context) => FirebaseConnectionState.connected,
+          builder: (context, delayCompleted, actualState, modifiedState) {
+            if (!delayCompleted)
+              return FirebaseConnectionState.connected;
+            else
+              return actualState;
+          },
+          dispose: (context, modifiedState) =>
+              modifiedState = FirebaseConnectionState.connected,
         ),
         // Provider for all values in FirebaseDatabase. This provider updates whenever database value changes (which is quite frequently). All other providers for indivual values in the database listen to this main provider and update accordingly.
         StreamProvider<List<StallData>>(
@@ -87,6 +105,7 @@ class _BoltAppState extends State<BoltApp> {
           updateShouldNotify: (list1, list2) {
             if (list1?.length != list2?.length) return true;
             int i = -1;
+            // Checking if every item in list is equivalent. Normal '==' operator does not work for lists
             return !list1.every((item) {
               i++;
               return item.name == list2[i].name && item.image == list2[i].image;
@@ -98,7 +117,7 @@ class _BoltAppState extends State<BoltApp> {
         //   builder: (_) => ThemeNotifier(),
         // ),
         ChangeNotifierProvider(
-          builder: (_) => ViewOrder(),
+          builder: (_) => OrderNotifier(),
         ),
       ],
       child: Consumer<ThemeNotifier>(
@@ -173,10 +192,13 @@ class _HomeState extends State<Home> {
         ),
         body: Consumer<List<StallNameAndImage>>(
           builder: (context, stallNamesAndImages, child) {
-            Widget element = Center(
-              child: Column(
+            Widget element = Center(child: CircularProgressIndicator());
+            if (Provider.of<FirebaseConnectionState>(context) ==
+                FirebaseConnectionState.disconnected)
+              element = Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
+                  SizedBox(width: double.infinity),
                   CircularProgressIndicator(),
                   if (Provider.of<FirebaseConnectionState>(context) ==
                       FirebaseConnectionState.disconnected)
@@ -190,10 +212,11 @@ class _HomeState extends State<Home> {
                       ],
                     ),
                 ],
-              ),
-            );
+              );
             if (stallNamesAndImages != null) {
-              scrollControllers = [for (var _ in stallNamesAndImages) ScrollController()];
+              scrollControllers = [
+                for (var _ in stallNamesAndImages) ScrollController()
+              ];
               element = Stack(
                 children: <Widget>[
                   CustomBottomSheet(
@@ -281,7 +304,7 @@ class _HomeState extends State<Home> {
                       );
                     },
                   ),
-                  ViewOrderScreen(),
+                  OrderScreen(),
                 ],
               );
             }

@@ -1,5 +1,5 @@
 // Example Data:
-dynamic _exampleData = {
+const exampleData = {
   'japanese': {
     'isOpen': 'ISOPEN',
     'image': 'IMAGESTRING',
@@ -31,11 +31,11 @@ class StallNameAndImage {
 }
 
 class StallData {
-  String name;
-  bool isOpen;
-  int queue;
-  List<MenuItem> menu;
-  String image;
+  final String name;
+  final bool isOpen;
+  final int queue;
+  final List<MenuItem> menu;
+  final String image;
   StallData({
     this.name,
     this.isOpen,
@@ -71,10 +71,10 @@ class StallData {
 }
 
 class MenuItem {
-  bool available;
-  String name;
-  num price;
-  String image;
+  final bool available;
+  final String name;
+  final num price;
+  final String image;
   MenuItem({
     this.available,
     this.name,
@@ -101,7 +101,7 @@ class MenuItem {
 }
 
 class MenuOption {
-  String name;
-  double addPrice;
+  final String name;
+  final double addPrice;
   MenuOption({this.name, this.addPrice});
 }

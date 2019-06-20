@@ -1,77 +1,126 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'firebase/firebase.dart';
+import 'order_data.dart';
 import 'widgets/bottom_sheet.dart';
 
-// class StallOrder {
-//   List<String> items;
-// }
+class OrderScreen extends StatefulWidget {
+  OrderScreen({Key key}) : super(key: key);
 
-// class Order extends ChangeNotifier {
-//   Order();
-//   String
-//   List<String> _orderList = [];
-// }
-
-class ViewOrder extends ChangeNotifier {
-  ViewOrder();
-  bool viewOrder = false;
-  void toggle() {
-    viewOrder = !viewOrder;
-    notifyListeners();
-  }
+  _OrderScreenState createState() => _OrderScreenState();
 }
 
-class ViewOrderScreen extends StatefulWidget {
-  ViewOrderScreen({Key key}) : super(key: key);
-
-  _ViewOrderScreenState createState() => _ViewOrderScreenState();
-}
-
-class _ViewOrderScreenState extends State<ViewOrderScreen> {
+class _OrderScreenState extends State<OrderScreen> {
   ScrollController scrollController = ScrollController();
+  final _listKey = GlobalKey<AnimatedListState>();
+  List<Order> _previousOrders;
   @override
   Widget build(BuildContext context) {
-    bool viewOrder = Provider.of<ViewOrder>(context).viewOrder;
+    final orderNotifier = Provider.of<OrderNotifier>(context);
+    final List<Order> orders = orderNotifier.orders;
     EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
+    if (_previousOrders == null) {
+      _previousOrders = List<Order>.from(orders);
+    } else if (orders.length == _previousOrders.length + 1) {
+      _previousOrders = List<Order>.from(orders);
+      // WidgetsBinding.instance.addPostFrameCallback((_) {});
+      _listKey.currentState.insertItem(orderNotifier.index,
+          duration: const Duration(milliseconds: 200));
+    } else if (orders.length == _previousOrders.length - 1) {
+      final previousItem = _previousOrders[orderNotifier.index].menuItem;
+      _previousOrders = List<Order>.from(orders);
+      _listKey.currentState.removeItem(orderNotifier.index,
+          (context, animation) {
+        return SizeTransition(
+          axis: Axis.horizontal,
+          sizeFactor: CurvedAnimation(curve: Curves.easeIn, parent: animation),
+          child: ScaleTransition(
+            scale: CurvedAnimation(curve: Curves.easeIn, parent: animation),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+              child: ClipPath(
+                clipper: ShapeBorderClipper(
+                    shape: ContinuousRectangleBorder(
+                        borderRadius: BorderRadius.circular(12))),
+                child: Image(
+                  height: 34,
+                  gaplessPlayback: true,
+                  image: FirebaseImage(previousItem.image),
+                ),
+              ),
+            ),
+          ),
+        );
+      }, duration: const Duration(milliseconds: 200));
+    }
     return CustomBottomSheet(
       controllers: [scrollController],
-      headerHeight: viewOrder ? 52 + 20 + windowPadding.bottom : 0,
+      headerHeight:
+          orderNotifier.orders.length > 0 ? 52 + 12 + windowPadding.bottom : 0,
       headerBuilder:
           (context, animation, viewSheetCallback, innerBoxIsScrolled) {
         return AnimatedBuilder(
             animation: animation,
             builder: (context, child) {
-              return Column(
-                children: <Widget>[
-                  Container(
-                    padding: const EdgeInsets.only(top: 8),
-                    height: animation.value.clamp(0.0, double.infinity) *
-                            (windowPadding.top - 20) +
-                        20,
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      height: 4,
-                      width: 24,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).dividerColor,
-                        borderRadius: BorderRadius.circular(2),
+              return FlatButton(
+                textColor: Theme.of(context).primaryColor,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.only(top: 8),
+                      height: animation.value.clamp(0.0, double.infinity) *
+                              (windowPadding.top - 12) +
+                          12,
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        height: 4,
+                        width: 24,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).dividerColor,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  FlatButton(
-                    textColor: Theme.of(context).primaryColor,
-                    child: Container(
+                    SizedBox(
                       height: 52,
-                      width: MediaQuery.of(context).size.width,
-                      alignment: Alignment.center,
-                      child: Text('View Order'),
+                      child: AnimatedList(
+                        padding: EdgeInsets.all(8),
+                        key: _listKey,
+                        scrollDirection: Axis.horizontal,
+                        shrinkWrap: true,
+                        itemBuilder: (context, index, animation) {
+                          return SizeTransition(
+                            axis: Axis.horizontal,
+                            sizeFactor: CurvedAnimation(curve: Curves.fastOutSlowIn, parent: animation),
+                            child: ScaleTransition(
+                              scale: CurvedAnimation(curve: Curves.fastOutSlowIn, parent: animation),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+                                child: ClipPath(
+                                  clipper: ShapeBorderClipper(
+                                      shape: ContinuousRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12))),
+                                  child: Image(
+                                    height: 34,
+                                    gaplessPlayback: true,
+                                    image: FirebaseImage(orderNotifier
+                                        .orders[index].menuItem.image),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    onPressed: viewSheetCallback,
-                  ),
-                  SizedBox(
-                    height: windowPadding.bottom,
-                  ),
-                ],
+                    SizedBox(
+                      height: windowPadding.bottom,
+                    ),
+                  ],
+                ),
+                onPressed: viewSheetCallback,
               );
             });
       },

@@ -131,12 +131,10 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             ),
             disposeScrollDrag);
       scrolling = true;
-      if (innerBoxIsScrolled.value == false) innerBoxIsScrolled.value = true;
       scrollDrag.update(details);
     } else {
       activeScrollController.jumpTo(0);
       dragCancel();
-      if (innerBoxIsScrolled.value == true) innerBoxIsScrolled.value = false;
       scrolling = false;
       double delta = details.primaryDelta /
           (windowHeight - Provider.of<EdgeInsets>(context).top);
@@ -207,8 +205,6 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             );
             animationController.animateWith(simulation);
             scrollTimer = null;
-            if (innerBoxIsScrolled.value == true)
-              innerBoxIsScrolled.value = false;
           },
         );
         return false;
@@ -236,8 +232,6 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
               primaryVelocity: velocityEnd * windowHeight,
             ));
             scrollTimer = null;
-            if (innerBoxIsScrolled.value == false)
-              innerBoxIsScrolled.value = true;
           },
         );
         return true;
@@ -379,6 +373,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             ? widget.pageController.page.round()
             : widget.pageController.initialPage;
         // TODO: solve range error where the current page user is on is removed
+        if (tabIndex >= widget.controllers.length)
+          tabIndex = widget.controllers.length - 1;
         activeScrollController = widget.controllers[tabIndex];
       } else {
         tabIndex = widget.tabController.index;
@@ -394,7 +390,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       double oldIntialValue = initialValue;
       headerHeight = widget.headerHeight;
       initialValue = 1 - headerHeight / windowHeight;
-      if (animationController.value >= oldIntialValue || animationController.value >= initialValue)
+      if (animationController.value >= oldIntialValue ||
+          animationController.value >= initialValue)
         animationController.animateBack(initialValue,
             duration: widget.headerHeightTransitionDuration,
             curve: widget.headerHeightTransitionCurve);
@@ -450,7 +447,8 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             child: PhysicalShape(
               color: Theme.of(context).canvasColor,
               clipper: ShapeBorderClipper(
-                shape: animation.value < 0 ? widget.shape : shapeAnimation.value,
+                shape:
+                    animation.value < 0 ? widget.shape : shapeAnimation.value,
               ),
               clipBehavior: Clip.antiAlias,
               child: child,
@@ -462,8 +460,19 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
           width: MediaQuery.of(context).size.width,
           child: Stack(
             children: <Widget>[
-              Positioned.fill(
-                child: widget.contentBuilder(context, animation),
+              NotificationListener(
+                onNotification: (notification) {
+                  if (notification is ScrollUpdateNotification && notification.depth == 1) {
+                    if (notification.metrics.pixels <= 0.5 &&
+                        innerBoxIsScrolled.value == true) {
+                      innerBoxIsScrolled.value = false;
+                    } else if (notification.metrics.pixels > 0.5 && innerBoxIsScrolled.value == false)
+                      innerBoxIsScrolled.value = true;
+                  }
+                },
+                child: Positioned.fill(
+                  child: widget.contentBuilder(context, animation),
+                ),
               ),
               SizedBox(
                 key: headerKey,
