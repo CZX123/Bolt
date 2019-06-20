@@ -1,7 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'stall_data.dart';
 import 'order_data.dart';
@@ -294,7 +292,7 @@ class _StallImageState extends State<StallImage>
             scale += imageOffset;
           }
           return Material(
-            color: Theme.of(context).dividerColor,
+            type: MaterialType.transparency,
             clipBehavior: clipping ? Clip.hardEdge : Clip.none,
             child: Transform.translate(
               offset: Offset(imageOffset * width * (clipping ? 1 : 2), 0),
@@ -309,20 +307,10 @@ class _StallImageState extends State<StallImage>
         child: OverflowBox(
           minWidth: MediaQuery.of(context).size.width,
           maxWidth: double.infinity,
-          child: GestureDetector(
-            // For debugging only, disable on release
-            onLongPress: () {
-              getApplicationDocumentsDirectory().then((dir) {
-                File file = File(
-                    '${dir.path}/stalls-${widget.stallName.toLowerCase()}-image.png');
-                file.exists().then((exists) {
-                  if (exists) {
-                    print('Image Deleted!');
-                    file.delete();
-                  }
-                });
-              });
-            },
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).dividerColor,
+            ),
             child: FadeInImage(
               fadeInDuration: Duration(milliseconds: 400),
               placeholder: MemoryImage(kTransparentImage),

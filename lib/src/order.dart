@@ -56,7 +56,7 @@ class _OrderScreenState extends State<OrderScreen> {
     return CustomBottomSheet(
       controllers: [scrollController],
       headerHeight:
-          orderNotifier.orders.length > 0 ? 52 + 12 + windowPadding.bottom : 0,
+          orderNotifier.orders.length > 0 ? 66 + 12 + windowPadding.bottom : 0,
       headerBuilder:
           (context, animation, viewSheetCallback, innerBoxIsScrolled) {
         return AnimatedBuilder(
@@ -83,7 +83,7 @@ class _OrderScreenState extends State<OrderScreen> {
                       ),
                     ),
                     SizedBox(
-                      height: 52,
+                      height: 66,
                       child: AnimatedList(
                         padding: EdgeInsets.all(8),
                         key: _listKey,
@@ -92,18 +92,21 @@ class _OrderScreenState extends State<OrderScreen> {
                         itemBuilder: (context, index, animation) {
                           return SizeTransition(
                             axis: Axis.horizontal,
-                            sizeFactor: CurvedAnimation(curve: Curves.fastOutSlowIn, parent: animation),
+                            sizeFactor: CurvedAnimation(
+                                curve: Curves.fastOutSlowIn, parent: animation),
                             child: ScaleTransition(
-                              scale: CurvedAnimation(curve: Curves.fastOutSlowIn, parent: animation),
+                              scale: CurvedAnimation(
+                                  curve: Curves.fastOutSlowIn,
+                                  parent: animation),
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
                                 child: ClipPath(
                                   clipper: ShapeBorderClipper(
                                       shape: ContinuousRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12))),
+                                              BorderRadius.circular(20))),
                                   child: Image(
-                                    height: 34,
+                                    height: 48,
                                     gaplessPlayback: true,
                                     image: FirebaseImage(orderNotifier
                                         .orders[index].menuItem.image),
