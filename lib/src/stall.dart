@@ -31,6 +31,7 @@ class _StallState extends State<Stall> {
       physics: NeverScrollableScrollPhysics(),
       child: Column(
         children: <Widget>[
+          // This is for the padding animation when user scrolls up to account for the top padding due to status bar or notch
           AnimatedBuilder(
             animation: widget.animation,
             builder: (context, child) {
@@ -103,6 +104,7 @@ class StallQueue extends StatelessWidget {
             ?.queue;
       },
       child: Material(
+        type: MaterialType.transparency,
         child: Padding(
           padding: padding,
           child: Consumer<int>(
@@ -349,6 +351,7 @@ class _FoodItemState extends State<FoodItem>
   @override
   void initState() {
     super.initState();
+    // TODO: Add the extra stuff in the order here as well, after adding the extra stuff in the Order class in order_data.dart
     order = Order(stallName: widget.stallName, menuItem: widget.menuItem);
   }
 

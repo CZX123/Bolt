@@ -9,6 +9,7 @@ import 'package:Bolt/src/images/transparent_image.dart';
 
 enum FirebaseConnectionState { connected, disconnected }
 
+// Custom FirebaseImage widget that can be reused for all images in the app
 class FirebaseImage extends StatefulWidget {
   final String path;
   final Uint8List fallbackMemoryImage;
@@ -70,7 +71,7 @@ class _FirebaseImageState extends State<FirebaseImage>
     if (widget.path == null) {
       _imageProvider =
           MemoryImage(widget.fallbackMemoryImage ?? kTransparentImage);
-    } else if (imageMap.containsKey(widget.path)) {
+    } else if (imageMap.containsKey(widget.path)) { // If the provider already has the image ossciated with
       _imageProvider = MemoryImage(imageMap[widget.path]);
     } else {
       // These 2 functions below runs in parallel

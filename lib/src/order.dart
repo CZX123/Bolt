@@ -22,6 +22,7 @@ class _OrderScreenState extends State<OrderScreen> {
     if (_previousOrders == null) {
       _previousOrders = List<Order>.from(orders);
     } else if (orders.length == _previousOrders.length + 1) {
+      // TODO: Currently, if user presses 2 orders at the same time, this will break. Account for 2 or more orders added at the same time
       _previousOrders = List<Order>.from(orders);
       // WidgetsBinding.instance.addPostFrameCallback((_) {});
       _listKey.currentState.insertItem(orderNotifier.index,
@@ -58,6 +59,8 @@ class _OrderScreenState extends State<OrderScreen> {
       }, duration: const Duration(milliseconds: 200));
     }
     return CustomBottomSheet(
+      // TODO: find better colors for the view order screen
+      //color: Theme.of(context).primaryColorLight,
       controllers: [scrollController],
       headerHeight:
           orderNotifier.orders.length > 0 ? 66 + 12 + windowPadding.bottom : 0,
@@ -134,6 +137,7 @@ class _OrderScreenState extends State<OrderScreen> {
             });
       },
       contentBuilder: (context, animation) {
+        // TODO: build a nice layout for the viewOrderScreen
         return SingleChildScrollView(
           controller: scrollController,
           physics: NeverScrollableScrollPhysics(),

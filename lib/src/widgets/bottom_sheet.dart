@@ -41,6 +41,7 @@ class CustomBottomSheet extends StatefulWidget {
   final CustomBottomSheetBackgroundContentBuilder backgroundContentBuilder;
   final ShapeBorder shape;
   final SwipeArea swipeArea;
+  final Color color;
   CustomBottomSheet({
     this.enableLocalHistoryEntry: true,
     this.overscrollAfterDownwardDrag: false,
@@ -61,6 +62,7 @@ class CustomBottomSheet extends StatefulWidget {
       ),
     ),
     this.swipeArea: SwipeArea.bottomSheet,
+    this.color,
     Key key,
   }) : super(key: key);
 
@@ -445,7 +447,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
               boxShadow: kElevationToShadow[6],
             ),
             child: PhysicalShape(
-              color: Theme.of(context).canvasColor,
+              color: widget.color ?? Theme.of(context).canvasColor,
               clipper: ShapeBorderClipper(
                 shape:
                     animation.value < 0 ? widget.shape : shapeAnimation.value,

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeNotifier with ChangeNotifier {
@@ -28,7 +27,9 @@ List<ThemeData> themeList = [
     fontFamily: 'Manrope',
     brightness: Brightness.light,
     primaryColor: Color(0xFFFFC800),
-    accentColor: Color(0xFF2176FF),
+    primaryColorLight: Color(0xFFFEFDE8), // Ignore this light dark thing, they're the same
+    primaryColorDark: Color(0xFFFEFDE8),
+    accentColor: Color(0xFFFFF1C1),
     scaffoldBackgroundColor: Color(0xFFFCFAF4),
     canvasColor: Color(0xFFF9F6EA),
     textTheme: textTheme.merge(lightThemeText),
@@ -39,6 +40,8 @@ List<ThemeData> themeList = [
     fontFamily: 'Manrope',
     brightness: Brightness.dark,
     primaryColor: Color(0xFF2176FF),
+    primaryColorLight: Color(0xFF081F44),
+    primaryColorDark: Color(0xFF081F44),
     accentColor: Color(0xFFFFC800),
     scaffoldBackgroundColor: Color(0xFF000A14),
     canvasColor: Color(0xFF020F1C),

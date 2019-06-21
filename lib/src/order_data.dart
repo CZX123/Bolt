@@ -27,6 +27,7 @@ class OrderNotifier extends ChangeNotifier {
   }
 }
 
+// TODO: Add more necessary stuff to this Order class, e.g. person who ordered, quantity, additional options
 class Order {
   final String stallName;
   final MenuItem menuItem;

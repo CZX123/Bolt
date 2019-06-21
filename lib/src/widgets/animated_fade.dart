@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+// This is exactly the same as AnimatedOpacity except that it is a lot more performant. AnimatedOpacity uses Opacity as its child, this uses FadeTransition
 class AnimatedFade extends ImplicitlyAnimatedWidget {
   final double opacity;
   final Widget child;

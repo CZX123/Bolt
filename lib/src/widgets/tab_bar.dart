@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+// Custom Tab Bar built specifically for PageViews
 class CustomTabBar extends StatefulWidget {
+  // All values actually listen to offsetNotifier
   final ValueNotifier<double> offsetNotifier;
+  // PageController is only needed to animate to other pages when user clicks on another tab
   final PageController pageController;
+  // List of strings to display for the tabs
   final List<String> tabs;
   CustomTabBar(
       {Key key,
@@ -26,7 +30,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
   double _previousOffset = 0;
   bool isListening = true;
 
-  double lerpDouble(num a, num b, double t) {
+  double lerpDouble(double a, double b, double t) {
     return a + (b - a) * t;
   }
 
@@ -152,6 +156,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
   @override
   Widget build(BuildContext context) {
     return Visibility(
+      // Tabbar only visible when all values (like padding, widths) are updated. This means that it will not be visible for 1 frame.
       visible: _frontPadding != 0,
       maintainSize: true,
       maintainAnimation: true,
