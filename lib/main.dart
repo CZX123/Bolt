@@ -17,9 +17,9 @@ import 'src/order_data.dart';
 import 'src/widgets/firebase.dart';
 import 'src/widgets/shimmer.dart';
 
-void main() async {
+void main() {
   // force app to be only in portrait mode, and upright
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   runApp(BoltApp());
 }
 
