@@ -203,10 +203,10 @@ class _HomeState extends State<Home> {
             final bool isDark = Provider.of<ThemeNotifier>(context).isDarkMode;
             Color baseColor = isDark
                 ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.2);
+                : Colors.black.withOpacity(0.14);
             Color highlightColor = isDark
                 ? Colors.white.withOpacity(0.2)
-                : Colors.black.withOpacity(0.1);
+                : Colors.black.withOpacity(0.07);
             Widget element = Stack(
               key: ValueKey(0),
               fit: StackFit.expand,
