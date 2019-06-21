@@ -151,75 +151,83 @@ class _CustomTabBarState extends State<CustomTabBar> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: EdgeInsets.only(left: _frontPadding, right: _backPadding),
-        scrollDirection: Axis.horizontal,
-        child: Stack(
-          children: <Widget>[
-            if (_tabWidths.length > 0)
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: widget.offsetNotifier,
-                  builder: (context, value, child) {
-                    if (value.isNaN) return const SizedBox();
-                    return Transform.translate(
-                      offset:
-                          Offset(getIndicatorPosition(value / _windowWidth), 0),
-                      child: PhysicalShape(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        clipper: ShapeBorderClipper(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(1),
+    return Visibility(
+      visible: _frontPadding != 0,
+      maintainSize: true,
+      maintainAnimation: true,
+      maintainInteractivity: true,
+      maintainSemantics: true,
+      maintainState: true,
+      child: SizedBox(
+        height: 56,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: EdgeInsets.only(left: _frontPadding, right: _backPadding),
+          scrollDirection: Axis.horizontal,
+          child: Stack(
+            children: <Widget>[
+              if (_tabWidths.length > 0)
+                Align(
+                  alignment: Alignment.bottomLeft,
+                  child: ValueListenableBuilder<double>(
+                    valueListenable: widget.offsetNotifier,
+                    builder: (context, value, child) {
+                      if (value.isNaN) return const SizedBox();
+                      return Transform.translate(
+                        offset: Offset(
+                            getIndicatorPosition(value / _windowWidth), 0),
+                        child: PhysicalShape(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          clipper: ShapeBorderClipper(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(1),
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: SizedBox(
+                            height: 2,
+                            width: getIndicatorWidth(value / _windowWidth),
                           ),
                         ),
-                        clipBehavior: Clip.antiAlias,
-                        child: SizedBox(
-                          height: 2,
-                          width: getIndicatorWidth(value / _windowWidth),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (var i = 0; i < widget.tabs.length; i++)
-                  InkWell(
-                    key: _tabKeys[i],
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      height: 56,
-                      alignment: Alignment.center,
-                      child: Text(widget.tabs[i]),
-                    ),
-                    onTap: () {
-                      isListening = false;
-                      _scrollController.animateTo(
-                        getScrollPosition(i.toDouble()),
-                        duration: Duration(milliseconds: 400),
-                        curve: Curves.fastOutSlowIn,
                       );
-                      widget.pageController
-                          .animateToPage(
-                        i,
-                        duration: Duration(milliseconds: 400),
-                        curve: Curves.fastOutSlowIn,
-                      )
-                          .then((_) {
-                        isListening = true;
-                        updateScrollPosition();
-                      });
                     },
                   ),
-              ],
-            ),
-          ],
+                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  for (var i = 0; i < widget.tabs.length; i++)
+                    InkWell(
+                      key: _tabKeys[i],
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        height: 56,
+                        alignment: Alignment.center,
+                        child: Text(widget.tabs[i]),
+                      ),
+                      onTap: () {
+                        isListening = false;
+                        _scrollController.animateTo(
+                          getScrollPosition(i.toDouble()),
+                          duration: Duration(milliseconds: 400),
+                          curve: Curves.fastOutSlowIn,
+                        );
+                        widget.pageController
+                            .animateToPage(
+                          i,
+                          duration: Duration(milliseconds: 400),
+                          curve: Curves.fastOutSlowIn,
+                        )
+                            .then((_) {
+                          isListening = true;
+                          updateScrollPosition();
+                        });
+                      },
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

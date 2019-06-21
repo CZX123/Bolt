@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'src/widgets/animated_fade.dart';
 import 'theme.dart';
 import 'settings.dart';
 import 'src/widgets/bottom_sheet.dart';
@@ -12,7 +15,8 @@ import 'src/stall.dart';
 import 'src/stall_data.dart';
 import 'src/order.dart';
 import 'src/order_data.dart';
-import 'src/firebase/firebase.dart';
+import 'src/widgets/firebase.dart';
+import 'src/widgets/shimmer.dart';
 
 void main() async {
   // force app to be only in portrait mode, and upright
@@ -35,6 +39,10 @@ class _BoltAppState extends State<BoltApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Custom Image cache here
+        Provider<Map<String, Uint8List>>.value(
+          value: {},
+        ),
         // Provider for ThemeData. Only used in settings, and rebuilding entire MaterialApp
         ChangeNotifierProvider.value(
           value: ThemeNotifier(),
@@ -111,7 +119,6 @@ class _BoltAppState extends State<BoltApp> {
               return item.name == list2[i].name && item.image == list2[i].image;
             });
           },
-          dispose: (context, list) => list == null,
         ),
         // ChangeNotifierProvider(
         //   builder: (_) => ThemeNotifier(),
@@ -192,32 +199,205 @@ class _HomeState extends State<Home> {
         ),
         body: Consumer<List<StallNameAndImage>>(
           builder: (context, stallNamesAndImages, child) {
-            Widget element = Center(child: CircularProgressIndicator());
-            if (Provider.of<FirebaseConnectionState>(context) ==
-                FirebaseConnectionState.disconnected)
-              element = Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  SizedBox(width: double.infinity),
-                  CircularProgressIndicator(),
-                  if (Provider.of<FirebaseConnectionState>(context) ==
-                      FirebaseConnectionState.disconnected)
-                    Column(
-                      children: <Widget>[
-                        const SizedBox(height: 32),
-                        Text('Oh No!',
-                            style: Theme.of(context).textTheme.display2),
-                        const SizedBox(height: 8),
-                        const Text("Internet is down!"),
-                      ],
+            final double width = MediaQuery.of(context).size.width;
+            final bool isDark = Provider.of<ThemeNotifier>(context).isDarkMode;
+            Color baseColor = isDark
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.2);
+            Color highlightColor = isDark
+                ? Colors.white.withOpacity(0.2)
+                : Colors.black.withOpacity(0.1);
+            Widget element = Stack(
+              key: ValueKey(0),
+              fit: StackFit.expand,
+              children: <Widget>[
+                Shimmer.fromColors(
+                  key: ValueKey(isDark),
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  child: Container(
+                    height: width / 2560 * 1600 + 32,
+                    color: Colors.white,
+                  ),
+                ),
+                Positioned.fill(
+                  top: width / 2560 * 1600,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      boxShadow: kElevationToShadow[6],
                     ),
-                ],
-              );
+                    child: PhysicalShape(
+                      color: Color(Theme.of(context).canvasColor.value),
+                      clipper: ShapeBorderClipper(
+                        shape: ContinuousRectangleBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(32),
+                            topRight: Radius.circular(32),
+                          ),
+                        ),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Shimmer.fromColors(
+                        key: ValueKey(isDark),
+                        baseColor: baseColor,
+                        highlightColor: highlightColor,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: <Widget>[
+                            Column(
+                              children: <Widget>[
+                                SizedBox(
+                                  height: 16,
+                                ),
+                                ClipRect(
+                                  child: Row(
+                                    children: <Widget>[
+                                      SizedBox(
+                                        width: (width - 72) / 2,
+                                      ),
+                                      for (int i = 0; i < 4; i++)
+                                        ClipRect(
+                                          child: Padding(
+                                            padding: EdgeInsets.only(right: 24),
+                                            child: Container(
+                                              height: 24,
+                                              width: 72,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 14,
+                                ),
+                                Center(
+                                  child: Container(
+                                    height: 2,
+                                    width: 96,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(1),
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: 36,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: <Widget>[
+                                    Container(
+                                      height: 32,
+                                      width: 124,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          6, 0, 14, 0),
+                                      child: Container(
+                                        height: 32,
+                                        width: 112,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(
+                                  height: 42,
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(8, 0, 8, 0),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 13,
+                                    children: <Widget>[
+                                      for (int i = 0; i < 6; i++)
+                                        Column(
+                                          children: <Widget>[
+                                            ClipPath(
+                                              clipper: ShapeBorderClipper(
+                                                shape:
+                                                    ContinuousRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                              ),
+                                              child: Container(
+                                                height: (width - 8.0 * 3) / 2,
+                                                width: (width - 8.0 * 3) / 2,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: 7,
+                                            ),
+                                            Container(
+                                              height: 16,
+                                              width:
+                                                  (width - 8.0 * 3) / 2 * .65,
+                                              decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4)),
+                                            ),
+                                            SizedBox(
+                                              height: 3,
+                                            ),
+                                            Container(
+                                              height: 14,
+                                              width:
+                                                  (width - 8.0 * 3) / 2 * .25,
+                                              decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4)),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding:
+                        EdgeInsets.fromLTRB(8, 0, 8, windowPadding.bottom + 8),
+                    child: NoInternetWidget(),
+                  ),
+                ),
+              ],
+            );
             if (stallNamesAndImages != null) {
               scrollControllers = [
                 for (var _ in stallNamesAndImages) ScrollController()
               ];
               element = Stack(
+                key: ValueKey(1),
                 children: <Widget>[
                   CustomBottomSheet(
                     enableLocalHistoryEntry: false,
@@ -305,16 +485,56 @@ class _HomeState extends State<Home> {
                     },
                   ),
                   OrderScreen(),
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                          8, 0, 8, windowPadding.bottom + 8),
+                      child: NoInternetWidget(),
+                    ),
+                  ),
                 ],
               );
             }
             return AnimatedSwitcher(
-              switchOutCurve: Interval(0.5, 1, curve: Curves.easeIn),
-              switchInCurve: Interval(0.5, 1, curve: Curves.easeOut),
-              duration: Duration(milliseconds: 500),
+              switchOutCurve: Interval(0.1, 1, curve: Curves.easeIn),
+              switchInCurve: Interval(0.1, 1, curve: Curves.easeOut),
+              duration: Duration(milliseconds: 400),
               child: element,
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class NoInternetWidget extends StatelessWidget {
+  const NoInternetWidget({Key key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedFade(
+        opacity: Provider.of<FirebaseConnectionState>(context) ==
+                FirebaseConnectionState.disconnected
+            ? 1
+            : 0,
+        child: Material(
+          borderRadius: BorderRadius.circular(60),
+          color: Colors.black.withOpacity(0.6),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: Text(
+              Provider.of<List<StallNameAndImage>>(context) == null
+                  ? 'Waiting for internet…'
+                  : 'No Internet',
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.white,
+              ),
+            ),
+          ),
         ),
       ),
     );

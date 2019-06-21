@@ -463,10 +463,10 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
               NotificationListener(
                 onNotification: (notification) {
                   if (notification is ScrollUpdateNotification && notification.depth == 1) {
-                    if (notification.metrics.pixels <= 0.5 &&
+                    if (notification.metrics.pixels <= 5 &&
                         innerBoxIsScrolled.value == true) {
                       innerBoxIsScrolled.value = false;
-                    } else if (notification.metrics.pixels > 0.5 && innerBoxIsScrolled.value == false)
+                    } else if (notification.metrics.pixels > 5 && innerBoxIsScrolled.value == false)
                       innerBoxIsScrolled.value = true;
                   }
                 },

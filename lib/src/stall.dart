@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'stall_data.dart';
 import 'order_data.dart';
-import 'images/transparent_image.dart';
 import 'images/error_image.dart';
-import 'firebase/firebase.dart';
+import 'widgets/animated_fade.dart';
+import 'widgets/firebase.dart';
 
 class Stall extends StatefulWidget {
   final String name;
@@ -311,15 +311,11 @@ class _StallImageState extends State<StallImage>
             decoration: BoxDecoration(
               color: Theme.of(context).dividerColor,
             ),
-            child: FadeInImage(
-              fadeInDuration: Duration(milliseconds: 400),
-              placeholder: MemoryImage(kTransparentImage),
-              image: FirebaseImage(
-                Provider.of<List<StallNameAndImage>>(context)
-                    .firstWhere((s) => s.name == widget.stallName)
-                    .image,
-                fallbackMemoryImage: kErrorLandscapeImage,
-              ),
+            child: FirebaseImage(
+              Provider.of<List<StallNameAndImage>>(context)
+                  .firstWhere((s) => s.name == widget.stallName)
+                  .image,
+              fallbackMemoryImage: kErrorLandscapeImage,
               fit: BoxFit.cover,
             ),
           ),
@@ -329,7 +325,7 @@ class _StallImageState extends State<StallImage>
   }
 
   @override
-  bool get wantKeepAlive => true;
+  bool get wantKeepAlive => false;
 }
 
 class FoodItem extends StatefulWidget {
@@ -393,13 +389,14 @@ class _FoodItemState extends State<FoodItem>
                     borderRadius: BorderRadius.circular(24),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: FadeInImage(
-                    fadeInDuration: const Duration(milliseconds: 300),
-                    placeholder: MemoryImage(kTransparentImage),
-                    image: FirebaseImage(widget.menuItem.image,
-                        fallbackMemoryImage: kErrorImage),
+                  child: SizedBox(
                     height: cardWidth,
                     width: cardWidth,
+                    child: FirebaseImage(
+                      widget.menuItem.image,
+                      fallbackMemoryImage: kErrorImage,
+                      fadeInDuration: const Duration(milliseconds: 300),
+                    ),
                   ),
                 ),
                 Consumer<bool>(
@@ -474,38 +471,5 @@ class _FoodItemState extends State<FoodItem>
   }
 
   @override
-  bool get wantKeepAlive => true;
-}
-
-class AnimatedFade extends ImplicitlyAnimatedWidget {
-  final double opacity;
-  final Widget child;
-
-  AnimatedFade({
-    @required this.opacity,
-    @required this.child,
-    Duration duration: const Duration(milliseconds: 200),
-    Curve curve: Curves.ease,
-    Key key,
-  }) : super(duration: duration, curve: curve, key: key);
-  @override
-  _AnimatedFadeState createState() => _AnimatedFadeState();
-}
-
-class _AnimatedFadeState extends AnimatedWidgetBaseState<AnimatedFade> {
-  Tween<double> _opacityTween;
-
-  @override
-  void forEachTween(visitor) {
-    _opacityTween = visitor(
-        _opacityTween, widget.opacity, (value) => Tween<double>(begin: value));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacityTween.animate(animation),
-      child: widget.child,
-    );
-  }
+  bool get wantKeepAlive => false;
 }

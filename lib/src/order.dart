@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'firebase/firebase.dart';
+import 'widgets/firebase.dart';
 import 'order_data.dart';
 import 'widgets/bottom_sheet.dart';
 
@@ -33,19 +33,23 @@ class _OrderScreenState extends State<OrderScreen> {
           (context, animation) {
         return SizeTransition(
           axis: Axis.horizontal,
-          sizeFactor: CurvedAnimation(curve: Curves.easeIn, parent: animation),
+          sizeFactor: CurvedAnimation(
+              curve: Curves.fastOutSlowIn.flipped, parent: animation),
           child: ScaleTransition(
-            scale: CurvedAnimation(curve: Curves.easeIn, parent: animation),
+            scale: CurvedAnimation(
+                curve: Curves.fastOutSlowIn.flipped, parent: animation),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
               child: ClipPath(
                 clipper: ShapeBorderClipper(
                     shape: ContinuousRectangleBorder(
                         borderRadius: BorderRadius.circular(12))),
-                child: Image(
-                  height: 34,
-                  gaplessPlayback: true,
-                  image: FirebaseImage(previousItem.image),
+                child: SizedBox(
+                  height: 48,
+                  child: FirebaseImage(
+                    previousItem.image,
+                    fadeInDuration: null,
+                  ),
                 ),
               ),
             ),
@@ -105,11 +109,13 @@ class _OrderScreenState extends State<OrderScreen> {
                                       shape: ContinuousRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(20))),
-                                  child: Image(
+                                  child: SizedBox(
                                     height: 48,
-                                    gaplessPlayback: true,
-                                    image: FirebaseImage(orderNotifier
-                                        .orders[index].menuItem.image),
+                                    child: FirebaseImage(
+                                      orderNotifier
+                                          .orders[index].menuItem.image,
+                                      fadeInDuration: null,
+                                    ),
                                   ),
                                 ),
                               ),
