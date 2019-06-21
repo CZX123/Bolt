@@ -59,7 +59,7 @@ class _OrderScreenState extends State<OrderScreen> {
       }, duration: const Duration(milliseconds: 200));
     }
     return CustomBottomSheet(
-      // TODO: find better colors for the view order screen
+      // TODO: find better colors for the OrderScreen
       //color: Theme.of(context).primaryColorLight,
       controllers: [scrollController],
       headerHeight:
@@ -137,7 +137,7 @@ class _OrderScreenState extends State<OrderScreen> {
             });
       },
       contentBuilder: (context, animation) {
-        // TODO: build a nice layout for the viewOrderScreen
+        // TODO: build a nice layout for the OrderScreen
         return SingleChildScrollView(
           controller: scrollController,
           physics: NeverScrollableScrollPhysics(),
