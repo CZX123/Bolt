@@ -13,24 +13,17 @@ class OrderScreen extends StatefulWidget {
 class _OrderScreenState extends State<OrderScreen> {
   ScrollController scrollController = ScrollController();
   final _listKey = GlobalKey<AnimatedListState>();
-  List<Order> _previousOrders;
+  int _previousLength = 0;
   @override
   Widget build(BuildContext context) {
     final orderNotifier = Provider.of<OrderNotifier>(context);
-    final List<Order> orders = orderNotifier.orders;
     EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
-    if (_previousOrders == null) {
-      _previousOrders = List<Order>.from(orders);
-    } else if (orders.length == _previousOrders.length + 1) {
-      // TODO: Currently, if user presses 2 orders at the same time, this will break. Account for 2 or more orders added at the same time
-      _previousOrders = List<Order>.from(orders);
-      // WidgetsBinding.instance.addPostFrameCallback((_) {});
-      _listKey.currentState.insertItem(orderNotifier.index,
-          duration: const Duration(milliseconds: 200));
-    } else if (orders.length == _previousOrders.length - 1) {
-      final previousItem = _previousOrders[orderNotifier.index].menuItem;
-      _previousOrders = List<Order>.from(orders);
-      _listKey.currentState.removeItem(orderNotifier.index,
+    if (orderNotifier.orderHistory.length > _previousLength) {
+      int _newLength = orderNotifier.orderHistory.length;
+      orderNotifier.orderHistory.sublist(_previousLength, _newLength).forEach((item) {
+        item[0]
+          ? _listKey.currentState.insertItem(item[1])
+          : _listKey.currentState.removeItem(item[1],
           (context, animation) {
         return SizeTransition(
           axis: Axis.horizontal,
@@ -48,7 +41,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 child: SizedBox(
                   height: 48,
                   child: FirebaseImage(
-                    previousItem.image,
+                    item[2].menuItem.image,
                     fadeInDuration: null,
                   ),
                 ),
@@ -57,6 +50,8 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
         );
       }, duration: const Duration(milliseconds: 200));
+      });
+      _previousLength = _newLength;
     }
     return CustomBottomSheet(
       // TODO: find better colors for the OrderScreen

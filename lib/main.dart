@@ -201,6 +201,7 @@ class _HomeState extends State<Home> {
         ),
         body: Consumer<List<StallNameAndImage>>(
           builder: (context, stallNamesAndImages, child) {
+            // NOTE: there will be a lot of error messages on RenderFlex overflow, and Shimmer having negative constraints. Just ignore all those, a bit hard to fix, they are for the loading screen here.
             Widget element = LoadingScreen();
             if (stallNamesAndImages != null) {
               scrollControllers = [

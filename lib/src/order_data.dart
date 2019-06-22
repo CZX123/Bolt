@@ -6,17 +6,17 @@ class OrderNotifier extends ChangeNotifier {
 
   List<Order> _orders = [];
   List<Order> get orders => _orders;
-  int _index = 0; // For easy updates to the animated list in the OrderScreen
-  int get index => _index;
+  List<List> _orderHistory = [];
+  List<List> get orderHistory => _orderHistory;
 
   void addOrder(Order order) {
-    _index = _orders.length;
+    _orderHistory.add([true, _orders.length]);
     _orders.add(order);
     notifyListeners();
   }
 
   void removeOrder(Order order) {
-    _index = _orders.indexOf(order);
+    _orderHistory.add([false, _orders.indexOf(order), order]);
     _orders.remove(order);
     notifyListeners();
   }
