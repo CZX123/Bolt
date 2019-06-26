@@ -27,6 +27,7 @@ typedef CustomBottomSheetBackgroundContentBuilder = Widget Function(
 );
 
 class CustomBottomSheet extends StatefulWidget {
+  final bool swipeParallax;
   final bool enableLocalHistoryEntry;
   final double headerHeight;
   final bool overscrollAfterDownwardDrag;
@@ -43,6 +44,7 @@ class CustomBottomSheet extends StatefulWidget {
   final SwipeArea swipeArea;
   final Color color;
   CustomBottomSheet({
+    this.swipeParallax: true,
     this.enableLocalHistoryEntry: true,
     this.overscrollAfterDownwardDrag: false,
     this.overscrollAfterUpwardDrag: false,
@@ -138,8 +140,11 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       activeScrollController.jumpTo(0);
       dragCancel();
       scrolling = false;
-      double delta = details.primaryDelta /
-          (windowHeight - Provider.of<EdgeInsets>(context).top);
+      double delta = details.primaryDelta / windowHeight;
+      if (widget.swipeParallax)
+        delta *= initialValue /
+            (initialValue -
+                Provider.of<EdgeInsets>(context).top / windowHeight);
       if (animationController.value > initialValue)
         delta *= frictionFactor(
             (animationController.value - initialValue) / (1 - initialValue));
@@ -464,11 +469,13 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             children: <Widget>[
               NotificationListener(
                 onNotification: (notification) {
-                  if (notification is ScrollUpdateNotification && notification.depth == 1) {
+                  if (notification is ScrollUpdateNotification &&
+                      notification.depth == 1) {
                     if (notification.metrics.pixels <= 5 &&
                         innerBoxIsScrolled.value == true) {
                       innerBoxIsScrolled.value = false;
-                    } else if (notification.metrics.pixels > 5 && innerBoxIsScrolled.value == false)
+                    } else if (notification.metrics.pixels > 5 &&
+                        innerBoxIsScrolled.value == false)
                       innerBoxIsScrolled.value = true;
                   }
                 },
