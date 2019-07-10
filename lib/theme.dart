@@ -21,7 +21,7 @@ class ThemeNotifier with ChangeNotifier {
 
 // light theme
 // dark theme
-List<ThemeData> themeList = [
+final List<ThemeData> themeList = [
   ThemeData(
     platform: TargetPlatform.iOS,
     fontFamily: 'Manrope',
@@ -29,11 +29,20 @@ List<ThemeData> themeList = [
     primaryColor: Color(0xFFFFC800),
     primaryColorLight: Color(0xFFFEFDE8), // Ignore this light dark thing, they're the same
     primaryColorDark: Color(0xFFFEFDE8),
-    accentColor: Color(0xFFFFF1C1),
-    scaffoldBackgroundColor: Color(0xFFFCFAF4),
-    canvasColor: Color(0xFFF9F6EA),
+    accentColor: Color(0xFF2176FF),
+    scaffoldBackgroundColor: Color(0xFFFFFCED),
+    canvasColor: Color(0xFFFFFBE6),
+    cardColor: Color(0xFFFFF9DB),
     textTheme: textTheme.merge(lightThemeText),
-    toggleableActiveColor: Color(0xFF2176FF),
+    toggleableActiveColor: Color(0xFFFFC800),
+    buttonTheme: ButtonThemeData(
+      minWidth: 64,
+      height: 24,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: ContinuousRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      )
+    ),
   ),
   ThemeData(
     platform: TargetPlatform.iOS,
@@ -43,13 +52,23 @@ List<ThemeData> themeList = [
     primaryColorLight: Color(0xFF081F44),
     primaryColorDark: Color(0xFF081F44),
     accentColor: Color(0xFFFFC800),
-    scaffoldBackgroundColor: Color(0xFF000A14),
+    // scaffoldBackgroundColor: Color(0xFF000A14),
+    scaffoldBackgroundColor: Color(0xFF1a2330),
     canvasColor: Color(0xFF020F1C),
+    cardColor: Color(0xFF031230),
     appBarTheme: AppBarTheme(
       color: Color(0xFF0A1826),
     ),
     textTheme: textTheme.merge(darkThemeText),
     toggleableActiveColor: Color(0xFFFFC800),
+    buttonTheme: ButtonThemeData(
+      minWidth: 64,
+      height: 24,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: ContinuousRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      )
+    ),
   ),
 ];
 
@@ -65,29 +84,31 @@ TextTheme textTheme = const TextTheme(
   ),
   subtitle: const TextStyle(
     height: 0.8,
-    fontSize: 12.0,
+    fontSize: 12,
   ),
   button: const TextStyle(
     height: 0.8,
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
   ),
   display1: const TextStyle(
     height: 0.8,
-    fontSize: 14.0,
+    fontSize: 14,
     fontWeight: FontWeight.w700,
   ),
   display2: const TextStyle(
     height: 0.8,
-    fontSize: 20.0,
+    fontSize: 20,
     fontWeight: FontWeight.w700,
   ),
   display3: const TextStyle(
     height: 0.8,
-    fontSize: 36.0,
+    fontSize: 36,
     fontWeight: FontWeight.w700,
   ),
   display4: const TextStyle(
     height: 0.8,
-    fontSize: 48.0,
+    fontSize: 48,
     fontWeight: FontWeight.w700,
   ),
 );

@@ -9,8 +9,12 @@ class OrderNotifier extends ChangeNotifier {
   List<List> _orderHistory = [];
   List<List> get orderHistory => _orderHistory;
 
+  void clearOrderHistory() {
+    _orderHistory = [];
+  }
+
   void addOrder(Order order) {
-    _orderHistory.add([true, _orders.length]);
+    _orderHistory.add([true, _orders.length, order]);
     _orders.add(order);
     notifyListeners();
   }

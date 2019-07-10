@@ -4,7 +4,6 @@ import 'package:firebase_database/firebase_database.dart';
 import 'stall_data.dart';
 import 'order_data.dart';
 import 'images/error_image.dart';
-import 'widgets/animated_fade.dart';
 import 'widgets/firebase.dart';
 
 class Stall extends StatefulWidget {
@@ -72,6 +71,7 @@ class _StallState extends State<Stall> {
                     children: <Widget>[
                       for (var item in menuList)
                         FoodItem(
+                          key: ValueKey(item.name),
                           stallName: widget.name,
                           menuItem: item,
                         ),
@@ -407,8 +407,10 @@ class _FoodItemState extends State<FoodItem>
                     return Stack(
                       fit: StackFit.passthrough,
                       children: <Widget>[
-                        AnimatedFade(
+                        AnimatedOpacity(
                           opacity: isOrdered ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.ease,
                           child: ClipPath(
                             clipper: ShapeBorderClipper(
                               shape: ContinuousRectangleBorder(

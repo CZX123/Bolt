@@ -4,12 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'src/widgets/animated_fade.dart';
 import 'theme.dart';
 import 'settings.dart';
 import 'src/widgets/bottom_sheet.dart';
 import 'src/widgets/tab_bar.dart';
-import 'dart:ui';
 import 'src/stall.dart';
 import 'src/stall_data.dart';
 import 'src/order.dart';
@@ -23,17 +21,7 @@ void main() {
   runApp(BoltApp());
 }
 
-class BoltApp extends StatefulWidget {
-  @override
-  _BoltAppState createState() => _BoltAppState();
-}
-
-class _BoltAppState extends State<BoltApp> {
-  @override
-  void initState() {
-    super.initState();
-  }
-
+class BoltApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // MultiProvider is a convenience widget to wrap multiple providers. The resulting structure is the same as nesting multiple providers. This just makes it neater.
@@ -214,8 +202,10 @@ class _HomeState extends State<Home> {
                     color: Theme.of(context).scaffoldBackgroundColor,
                     enableLocalHistoryEntry: false,
                     swipeArea: SwipeArea.entireScreen,
-                    overscrollAfterUpwardDrag: true, // Not iOS overscroll, but more of carried momentum after sheet is fully expanded
-                    overscrollAfterDownwardDrag: true, // same but for when user scrolls to top when sheet is fully expanded and whether the carried momentum while close the sheet
+                    overscrollAfterUpwardDrag:
+                        true, // Not iOS overscroll, but more of carried momentum after sheet is fully expanded
+                    overscrollAfterDownwardDrag:
+                        true, // same but for when user scrolls to top when sheet is fully expanded and whether the carried momentum while close the sheet
                     pageController: mainPageController,
                     controllers: scrollControllers,
                     headerHeight: MediaQuery.of(context).size.height -
@@ -249,13 +239,32 @@ class _HomeState extends State<Home> {
                       return ValueListenableBuilder<bool>(
                         valueListenable: innerBoxIsScrolled,
                         builder: (context, value, child) {
-                          return Material(
-                            borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                topRight: Radius.circular(16)),
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                            elevation: value ? 8 : 0,
-                            child: child,
+                          // return Material(
+                          //   borderRadius: const BorderRadius.only(
+                          //       topLeft: Radius.circular(16),
+                          //       topRight: Radius.circular(16)),
+                          //   color: Theme.of(context).scaffoldBackgroundColor,
+                          //   elevation: value ? 8 : 0,
+                          //   child: child,
+                          // );
+                          return AnimatedContainer(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              boxShadow: value ? Theme.of(context).brightness == Brightness.dark ? kElevationToShadow[4] : kElevationToShadow[3].map((shadow) {
+                                return BoxShadow(
+                                  color: shadow.color.withOpacity(shadow.color.opacity / 2),
+                                  offset: shadow.offset,
+                                  blurRadius: shadow.blurRadius,
+                                  spreadRadius: shadow.spreadRadius,
+                                );
+                              }).toList() : null,
+                            ),
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.ease,
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: child,
+                            ),
                           );
                         },
                         child: AnimatedBuilder(
@@ -351,7 +360,7 @@ class LoadingScreen extends StatelessWidget {
               boxShadow: kElevationToShadow[6],
             ),
             child: PhysicalShape(
-              color: Color(Theme.of(context).canvasColor.value),
+              color: Color(Theme.of(context).scaffoldBackgroundColor.value),
               clipper: ShapeBorderClipper(
                 shape: ContinuousRectangleBorder(
                   borderRadius: BorderRadius.only(
@@ -516,24 +525,26 @@ class NoInternetWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedFade(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.ease,
         opacity: Provider.of<FirebaseConnectionState>(context) ==
                 FirebaseConnectionState.disconnected
             ? 1
             : 0,
-        child: Material(
-          borderRadius: BorderRadius.circular(60),
-          color: Colors.black.withOpacity(0.6),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            child: Text(
-              Provider.of<List<StallNameAndImage>>(context) == null
-                  ? 'Waiting for internet…'
-                  : 'No Internet',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Colors.white,
-              ),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(60),
+          ),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Text(
+            Provider.of<List<StallNameAndImage>>(context) == null
+                ? 'Waiting for internet…'
+                : 'No Internet',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.white,
             ),
           ),
         ),
