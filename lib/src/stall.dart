@@ -42,7 +42,7 @@ class _StallState extends State<Stall> {
           ),
           StallQueue(
             stallName: widget.name,
-            padding: const EdgeInsets.fromLTRB(0, 80, 0, 16),
+            padding: const EdgeInsets.fromLTRB(0, 80, 0, 8),
           ),
           ProxyProvider<List<StallData>, List<MenuItem>>(
             builder: (context, stallDataList, menuItemList) {
@@ -65,7 +65,7 @@ class _StallState extends State<Stall> {
             child: Consumer<List<MenuItem>>(
               builder: (context, menuList, child) {
                 return Padding(
-                  padding: EdgeInsets.fromLTRB(0.0, 8.0, 0.0, 72.0),
+                  padding: EdgeInsets.fromLTRB(0, 8, 0, 72),
                   child: Wrap(
                     spacing: 8.0,
                     children: <Widget>[
@@ -116,7 +116,7 @@ class StallQueue extends StatelessWidget {
                         if (queue != null) {
                           FirebaseDatabase.instance
                               .reference()
-                              .child('stalls/${stallName.toLowerCase()}/queue')
+                              .child('stalls/$stallName/queue')
                               .set(queue + 1);
                         }
                       },
@@ -129,7 +129,7 @@ class StallQueue extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             Icon(
-                              Icons.accessibility,
+                              Icons.room_service,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                             const SizedBox(
@@ -155,66 +155,66 @@ class StallQueue extends StatelessWidget {
                             const SizedBox(
                               width: 4,
                             ),
-                            const Text('people'),
+                            const Text('Orders'),
                           ],
                         ),
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 20),
-                      child: InkWell(
-                        onTap: () {
-                          if (queue != null && queue > 0) {
-                            FirebaseDatabase.instance
-                                .reference()
-                                .child(
-                                    'stalls/${stallName.toLowerCase()}/queue')
-                                .set(queue - 1);
-                          }
-                        },
-                        customBorder: ContinuousRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: <Widget>[
-                              Icon(
-                                Icons.access_time,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              const SizedBox(
-                                width: 10,
-                              ),
-                              Container(
-                                alignment: Alignment.center,
-                                constraints: BoxConstraints(
-                                  minWidth: queue != null && queue ~/ 1.5 > 99
-                                      ? 27
-                                      : 18,
-                                ),
-                                child: AnimatedSwitcher(
-                                  switchOutCurve:
-                                      Interval(0.5, 1, curve: Curves.easeIn),
-                                  switchInCurve:
-                                      Interval(0.5, 1, curve: Curves.easeOut),
-                                  duration: Duration(milliseconds: 300),
-                                  child: Text(
-                                    queue != null ? '${queue ~/ 1.5}' : '',
-                                    key: ValueKey<int>(queue),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(
-                                width: 4,
-                              ),
-                              Text('mins'),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    // Padding(
+                    //   padding: const EdgeInsets.only(right: 20),
+                    //   child: InkWell(
+                    //     onTap: () {
+                    //       if (queue != null && queue > 0) {
+                    //         FirebaseDatabase.instance
+                    //             .reference()
+                    //             .child(
+                    //                 'stalls/${stallName.toLowerCase()}/queue')
+                    //             .set(queue - 1);
+                    //       }
+                    //     },
+                    //     customBorder: ContinuousRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(16),
+                    //     ),
+                    //     child: Padding(
+                    //       padding: const EdgeInsets.all(16),
+                    //       child: Row(
+                    //         mainAxisAlignment: MainAxisAlignment.center,
+                    //         children: <Widget>[
+                    //           Icon(
+                    //             Icons.access_time,
+                    //             color: Theme.of(context).colorScheme.onSurface,
+                    //           ),
+                    //           const SizedBox(
+                    //             width: 10,
+                    //           ),
+                    //           Container(
+                    //             alignment: Alignment.center,
+                    //             constraints: BoxConstraints(
+                    //               minWidth: queue != null && queue ~/ 1.5 > 99
+                    //                   ? 27
+                    //                   : 18,
+                    //             ),
+                    //             child: AnimatedSwitcher(
+                    //               switchOutCurve:
+                    //                   Interval(0.5, 1, curve: Curves.easeIn),
+                    //               switchInCurve:
+                    //                   Interval(0.5, 1, curve: Curves.easeOut),
+                    //               duration: Duration(milliseconds: 300),
+                    //               child: Text(
+                    //                 queue != null ? '${queue ~/ 1.5}' : '',
+                    //                 key: ValueKey<int>(queue),
+                    //               ),
+                    //             ),
+                    //           ),
+                    //           const SizedBox(
+                    //             width: 4,
+                    //           ),
+                    //           Text('mins'),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                   ],
                 ),
           ),
