@@ -1,5 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'library.dart';
 
 class ThemeNotifier with ChangeNotifier {
   ThemeNotifier();
@@ -74,40 +73,42 @@ final List<ThemeData> themeList = [
 
 TextTheme textTheme = const TextTheme(
   body1: const TextStyle(
-    height: 0.8,
+    height: 1.2,
+    fontSize: 15,
   ),
   body2: const TextStyle(
-    height: 0.8,
+    height: 1.2,
+    fontSize: 15,
   ),
   title: const TextStyle(
-    height: 0.8,
+    height: 1.2,
   ),
   subtitle: const TextStyle(
-    height: 0.8,
-    fontSize: 12,
+    height: 1.2,
+    fontSize: 13.5,
   ),
   button: const TextStyle(
-    height: 0.8,
-    fontSize: 12,
+    height: 1.2,
+    fontSize: 15,
     fontWeight: FontWeight.w700,
   ),
   display1: const TextStyle(
-    height: 0.8,
-    fontSize: 14,
+    height: 1.2,
+    fontSize: 15,
     fontWeight: FontWeight.w700,
   ),
   display2: const TextStyle(
-    height: 0.8,
+    height: 1.2,
     fontSize: 20,
     fontWeight: FontWeight.w700,
   ),
   display3: const TextStyle(
-    height: 0.8,
+    height: 1.2,
     fontSize: 36,
     fontWeight: FontWeight.w700,
   ),
   display4: const TextStyle(
-    height: 0.8,
+    height: 1.2,
     fontSize: 48,
     fontWeight: FontWeight.w700,
   ),

@@ -1,9 +1,4 @@
-import 'dart:math' as math;
-import 'dart:async';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/physics.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import '../../library.dart';
 
 typedef CustomBottomSheetHeaderBuilder = Widget Function(
   BuildContext context,
@@ -95,7 +90,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
   Timer scrollTimer;
   ValueNotifier<bool> innerBoxIsScrolled = ValueNotifier(false);
   double frictionFactor(double overscrollFraction) =>
-      0.52 * math.pow(1 - overscrollFraction, 2);
+      0.52 * pow(1 - overscrollFraction, 2);
 
   // user has touched the screen and may begin to drag
   void dragDown(DragDownDetails details) {
@@ -190,7 +185,9 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
           -velocity *
               0.91); // https://github.com/flutter/flutter/blob/master/packages/flutter/lib/src/widgets/scroll_physics.dart
       double simulationEndTime = scrollingSimulation.timeAtX(0);
-      if (simulationEndTime != double.infinity) {
+      if (simulationEndTime != double.infinity &&
+          activeScrollController.offset <=
+              activeScrollController.position.maxScrollExtent) {
         double velocityEnd =
             scrollingSimulation.dx(simulationEndTime) / windowHeight;
         scrollTimer = Timer(
@@ -478,6 +475,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
                         innerBoxIsScrolled.value == false)
                       innerBoxIsScrolled.value = true;
                   }
+                  return null;
                 },
                 child: Positioned.fill(
                   child: widget.contentBuilder(context, animation),

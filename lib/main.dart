@@ -1,19 +1,4 @@
-import 'dart:typed_data';
-import 'package:flutter/services.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'theme.dart';
-import 'settings.dart';
-import 'src/widgets/bottom_sheet.dart';
-import 'src/widgets/tab_bar.dart';
-import 'src/stall.dart';
-import 'src/stall_data.dart';
-import 'src/order.dart';
-import 'src/order_data.dart';
-import 'src/widgets/firebase.dart';
-import 'src/widgets/shimmer.dart';
+import 'library.dart';
 
 void main() {
   // force app to be only in portrait mode, and upright
@@ -63,54 +48,104 @@ class BoltApp extends StatelessWidget {
           dispose: (context, modifiedState) =>
               modifiedState = FirebaseConnectionState.connected,
         ),
-        // Provider for all values in FirebaseDatabase. This provider updates whenever database value changes (which is quite frequently). All other providers for indivual values in the database listen to this main provider and update accordingly.
-        StreamProvider<List<StallData>>(
-          builder: (context) => FirebaseDatabase.instance
-                  .reference()
-                  .child('stalls')
-                  .onValue
-                  .map<List<StallData>>((event) {
-                if (event == null) return null;
-                Map<String, dynamic> map =
-                    Map<String, dynamic>.from(event.snapshot.value);
-                var stallDataList = map
-                    .map((key, value) {
-                      return MapEntry(StallData.fromJson(key, value), 0);
-                    })
-                    .keys
-                    .toList();
-                return stallDataList;
-              }),
-          catchError: (context, object) {
-            // TODO: handle errors, e.g. number of users exceeded Firebase maximum
-            print(object);
-          },
-        ),
-        // Provider for the list of stall names and stall images. More is said in stall_data.dart. This should be rarely updated.
-        ProxyProvider<List<StallData>, List<StallNameAndImage>>(
-          builder: (context, stallDataList, stallNameAndImage) {
-            if (stallDataList == null) return null;
-            return stallDataList
-                .map((stallData) => StallNameAndImage.fromStallData(stallData))
-                .toList();
-          },
-          updateShouldNotify: (list1, list2) {
-            if (list1?.length != list2?.length) return true;
-            int i = -1;
-            // Checking if every item in list is equivalent. Normal '==' operator does not work for lists.
-            return !list1.every((item) {
-              i++;
-              return item.name == list2[i].name && item.image == list2[i].image;
+        StreamProvider<List<StallDetails>>(
+          builder: (context) {
+            return FirebaseDatabase.instance
+                .reference()
+                .child('stalls')
+                .onValue
+                .map<List<StallDetails>>((event) {
+              if (event == null) return null;
+              Map map;
+              try {
+                map = Map<String, dynamic>.from(event.snapshot.value);
+              } catch(e) {
+                map = List.from(event.snapshot.value).asMap();
+              }
+              final list = map
+                  .map((key, value) {
+                    return MapEntry(StallDetails.fromJson(key.toString(), value), 0);
+                  })
+                  .keys
+                  .toList();
+              list.sort((a, b) => a.id.compareTo(b.id));
+              return list;
             });
           },
         ),
+        StreamProvider<List<StallMenu>>(
+          builder: (context) {
+            return FirebaseDatabase.instance
+                .reference()
+                .child('stallMenu')
+                .onValue
+                .map<List<StallMenu>>((event) {
+              if (event == null) return null;
+              Map map;
+              try {
+                map = Map<String, dynamic>.from(event.snapshot.value);
+              } catch(e) {
+                map = List.from(event.snapshot.value).asMap();
+              }
+              final list = map
+                  .map((key, value) {
+                    return MapEntry(StallMenu.fromJson(key.toString(), value), 0);
+                  })
+                  .keys
+                  .toList();
+              list.sort((a, b) => a.id.compareTo(b.id));
+              return list;
+            });
+          },
+        ),
+        // Provider for all values in FirebaseDatabase. This provider updates whenever database value changes (which is quite frequently). All other providers for indivual values in the database listen to this main provider and update accordingly.
+        // StreamProvider<List<StallData>>(
+        //   builder: (context) => FirebaseDatabase.instance
+        //       .reference()
+        //       .child('stalls')
+        //       .onValue
+        //       .map<List<StallData>>((event) {
+        //     if (event == null) return null;
+        //     Map<String, dynamic> map =
+        //         Map<String, dynamic>.from(event.snapshot.value);
+        //     var stallDataList = map
+        //         .map((key, value) {
+        //           return MapEntry(StallData.fromJson(key, value), 0);
+        //         })
+        //         .keys
+        //         .toList();
+        //     return stallDataList;
+        //   }),
+        //   catchError: (context, object) {
+        //     // TODO: handle errors, e.g. number of users exceeded Firebase maximum
+        //     print(object);
+        //   },
+        // ),
+        // Provider for the list of stall names and stall images. More is said in stall_data.dart. This should be rarely updated.
+        // ProxyProvider<List<StallData>, List<StallNameAndImage>>(
+        //   builder: (context, stallDataList, stallNameAndImage) {
+        //     if (stallDataList == null) return null;
+        //     return stallDataList
+        //         .map((stallData) => StallNameAndImage.fromStallData(stallData))
+        //         .toList();
+        //   },
+        //   updateShouldNotify: (list1, list2) {
+        //     if (list1?.length != list2?.length) return true;
+        //     int i = -1;
+        //     // Checking if every item in list is equivalent. Normal '==' operator does not work for lists.
+        //     return !list1.every((item) {
+        //       i++;
+        //       return item.name == list2[i].name && item.image == list2[i].image;
+        //     });
+        //   },
+        // ),
         // The actual byte data of images is stored here. Initially, it's an empty map, with the key being the image's path name, and the Uint8List being the raw data. This is needed because images in the app will rebuild due to theme changes or stall data changes, and when they rebuild, they can easily access the stored data here instead of getting the image from device storage or Firebase again.
         Provider<Map<String, Uint8List>>.value(
           value: {},
         ),
         // Provider for currently ordered items. See order_data.dart for more.
         ChangeNotifierProvider(
-          builder: (_) => OrderNotifier(),
+          builder: (_) => ShoppingCartNotifier(),
         ),
       ],
       child: Consumer<ThemeNotifier>(
@@ -167,6 +202,8 @@ class _HomeState extends State<Home> {
     // Combines both padding and viewInsets, since on Android the bottom padding due to navigation bar is actually in the viewInsets, not the padding
     windowPadding =
         MediaQuery.of(context).padding + MediaQuery.of(context).viewInsets;
+    // print(windowPadding.top);
+    // print(MediaQuery.of(context).size.height);
   }
 
   @override
@@ -187,13 +224,13 @@ class _HomeState extends State<Home> {
         drawer: Drawer(
           child: SettingsPage(),
         ),
-        body: Consumer<List<StallNameAndImage>>(
-          builder: (context, stallNamesAndImages, child) {
+        body: Consumer<List<StallDetails>>(
+          builder: (context, stallDetailsList, child) {
             // NOTE: there will be a lot of error messages on RenderFlex overflow, and Shimmer having negative constraints. Just ignore all those, a bit hard to fix, they are for the loading screen here.
             Widget element = LoadingScreen();
-            if (stallNamesAndImages != null) {
+            if (stallDetailsList != null) {
               scrollControllers = [
-                for (var _ in stallNamesAndImages) ScrollController()
+                for (var _ in stallDetailsList) ScrollController()
               ];
               element = Stack(
                 children: <Widget>[
@@ -219,16 +256,16 @@ class _HomeState extends State<Home> {
                         child: PageView(
                           controller: stallImagesPageController,
                           children: <Widget>[
-                            for (int i = 0; i < stallNamesAndImages.length; i++)
+                            for (int i = 0; i < stallDetailsList.length; i++)
                               StallImage(
-                                key: ObjectKey(stallNamesAndImages[i].name),
+                                key: ObjectKey(stallDetailsList[i].image),
                                 offsetNotifier: offsetNotifier,
                                 index: i,
-                                stallName: stallNamesAndImages[i].name,
+                                image: stallDetailsList[i].image,
                                 animation: animation,
                                 defaultAnimation: defaultAnimation,
                                 pageController: stallImagesPageController,
-                                last: i == stallNamesAndImages.length - 1,
+                                last: i == stallDetailsList.length - 1,
                               ),
                           ],
                         ),
@@ -250,14 +287,20 @@ class _HomeState extends State<Home> {
                           return AnimatedContainer(
                             decoration: BoxDecoration(
                               color: Theme.of(context).scaffoldBackgroundColor,
-                              boxShadow: value ? Theme.of(context).brightness == Brightness.dark ? kElevationToShadow[4] : kElevationToShadow[3].map((shadow) {
-                                return BoxShadow(
-                                  color: shadow.color.withOpacity(shadow.color.opacity / 2),
-                                  offset: shadow.offset,
-                                  blurRadius: shadow.blurRadius,
-                                  spreadRadius: shadow.spreadRadius,
-                                );
-                              }).toList() : null,
+                              boxShadow: value
+                                  ? Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? kElevationToShadow[4]
+                                      : kElevationToShadow[3].map((shadow) {
+                                          return BoxShadow(
+                                            color: shadow.color.withOpacity(
+                                                shadow.color.opacity / 2),
+                                            offset: shadow.offset,
+                                            blurRadius: shadow.blurRadius,
+                                            spreadRadius: shadow.spreadRadius,
+                                          );
+                                        }).toList()
+                                  : null,
                             ),
                             duration: const Duration(milliseconds: 200),
                             curve: Curves.ease,
@@ -281,7 +324,7 @@ class _HomeState extends State<Home> {
                           child: CustomTabBar(
                             offsetNotifier: offsetNotifier,
                             pageController: mainPageController,
-                            tabs: [for (var s in stallNamesAndImages) s.name],
+                            tabs: [for (var s in stallDetailsList) s.name],
                           ),
                         ),
                       );
@@ -294,9 +337,9 @@ class _HomeState extends State<Home> {
                         child: PageView(
                           controller: mainPageController,
                           children: <Widget>[
-                            for (int i = 0; i < stallNamesAndImages.length; i++)
+                            for (int i = 0; i < stallDetailsList.length; i++)
                               Stall(
-                                name: stallNamesAndImages[i].name,
+                                id: stallDetailsList[i].id,
                                 animation: animation,
                                 scrollController: scrollControllers[i],
                               ),
@@ -539,7 +582,7 @@ class NoInternetWidget extends StatelessWidget {
           ),
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
           child: Text(
-            Provider.of<List<StallNameAndImage>>(context) == null
+            Provider.of<List<StallDetails>>(context) == null
                 ? 'Waiting for internet…'
                 : 'No Internet',
             style: const TextStyle(

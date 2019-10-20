@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import '../../library.dart';
 
 // Custom Tab Bar built specifically for PageViews
 class CustomTabBar extends StatefulWidget {
