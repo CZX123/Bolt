@@ -191,10 +191,14 @@ class _OrderScreenState extends State<OrderScreen> {
                         Container(
                           constraints: BoxConstraints(
                             minHeight: MediaQuery.of(context).size.height -
-                                windowPadding.top,
+                                windowPadding.top -
+                                windowPadding.bottom,
                           ),
                           padding: const EdgeInsets.all(32),
                           child: ListOfOrders(),
+                        ),
+                        SizedBox(
+                          height: windowPadding.bottom,
                         ),
                       ],
                     ),
@@ -284,63 +288,160 @@ class ListOfOrders extends StatelessWidget {
                               style: Theme.of(context).textTheme.display2),
                         ),
                         for (var dish in orders[stallId].keys)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                ClipPath(
-                                  clipper: ShapeBorderClipper(
-                                      shape: ContinuousRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(20))),
-                                  child: SizedBox(
-                                    height: 96,
-                                    child: FirebaseImage(
-                                      dish.dish.image,
-                                      fadeInDuration: null,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(
-                                  width: 16,
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(orders[stallId][dish].toString() +
-                                        '× ' +
-                                        dish.dish.name),
-                                    const SizedBox(
-                                      height: 1,
-                                    ),
-                                    Text(
-                                      '\$${(dish.dish.unitPrice + dish.dish.options.map((option) => option.addCost).toList().reduce((a, b) => a + b)).toStringAsFixed(2)}',
-                                      style:
-                                          Theme.of(context).textTheme.subtitle,
-                                    ),
-                                    const SizedBox(
-                                      height: 4,
-                                    ),
-                                    Wrap(
-                                      spacing: 5,
-                                      runSpacing: 3,
-                                      children: dishOptions(
-                                          context, dish.enabledOptions),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                          OrderDishRow(
+                            quantity: orders[stallId][dish],
+                            dish: dish,
                           ),
                       ],
                     ),
               ],
             ),
+            TotalCostWidget(orders: orders),
             const SizedBox.shrink(),
           ],
         );
       },
+    );
+  }
+}
+
+class OrderDishRow extends StatelessWidget {
+  final int quantity;
+  final DishWithOptions dish;
+  const OrderDishRow({Key key, @required this.quantity, @required this.dish})
+      : super(key: key);
+
+  List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
+    return options.map((option) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(8),
+            topRight: Radius.circular(69),
+            bottomLeft: Radius.circular(69),
+            bottomRight: Radius.circular(69),
+          ),
+          color: Colors.primaries[option.colourCode],
+        ),
+        child: Text(
+          option.name,
+          style: Theme.of(context).textTheme.subtitle.copyWith(
+                color:
+                    Colors.primaries[option.colourCode].computeLuminance() < .6
+                        ? Colors.white
+                        : Colors.black87,
+              ),
+        ),
+      );
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    num price = dish.dish.unitPrice;
+    dish.enabledOptions.forEach((option) {
+      price += option.addCost;
+    });
+    price *= quantity;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ClipPath(
+            clipper: ShapeBorderClipper(
+                shape: ContinuousRectangleBorder(
+                    borderRadius: BorderRadius.circular(20))),
+            child: SizedBox(
+              height: 80,
+              child: FirebaseImage(
+                dish.dish.image,
+                fadeInDuration: null,
+              ),
+            ),
+          ),
+          const SizedBox(
+            width: 16,
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(quantity.toString() + '× ' + dish.dish.name),
+              const SizedBox(
+                height: 1,
+              ),
+              Text(
+                '\$${price.toStringAsFixed(2)}',
+                style: Theme.of(context).textTheme.subtitle,
+              ),
+              const SizedBox(
+                height: 4,
+              ),
+              if (dish.enabledOptions.isNotEmpty)
+                SizedBox(
+                  width: width - 192.1,
+                  child: Wrap(
+                    spacing: 5,
+                    runSpacing: 3,
+                    children: dishOptions(context, dish.enabledOptions),
+                  ),
+                ),
+              const SizedBox(
+                height: 2,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TotalCostWidget extends StatelessWidget {
+  final Map<int, Map<DishWithOptions, int>> orders;
+  const TotalCostWidget({Key key, @required this.orders}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    num cost = 0;
+    orders.forEach((stallId, stallOrders) {
+      stallOrders.forEach((dish, quantity) {
+        num price = dish.dish.unitPrice;
+        dish.enabledOptions.forEach((option) {
+          price += option.addCost;
+        });
+        price *= quantity;
+        cost += price;
+      });
+    });
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Total Cost',
+            style: Theme.of(context).textTheme.subtitle.copyWith(
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(
+            height: 4,
+          ),
+          Text(
+            '\$${cost.toStringAsFixed(2)}',
+            style: Theme.of(context).textTheme.display3,
+          ),
+        ],
+      ),
     );
   }
 }

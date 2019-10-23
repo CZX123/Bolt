@@ -50,7 +50,7 @@ class _StallState extends State<Stall> {
             child: Consumer<StallMenu>(
               builder: (context, stallMenu, child) {
                 return Padding(
-                  padding: EdgeInsets.fromLTRB(0, 8, 0, 72),
+                  padding: EdgeInsets.fromLTRB(0, 8, 0, 128),
                   child: Wrap(
                     spacing: 8.0,
                     children: <Widget>[
@@ -259,8 +259,11 @@ class _StallImageState extends State<StallImage>
 class MenuGridItem extends StatelessWidget {
   final int stallId;
   final Dish dish;
-  const MenuGridItem({Key key, @required this.stallId, @required this.dish})
-      : super(key: key);
+  const MenuGridItem({
+    Key key,
+    @required this.stallId,
+    @required this.dish,
+  }) : super(key: key);
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -325,14 +328,29 @@ class MenuGridItem extends StatelessWidget {
                     shadowNotifier.value = 0;
                   },
                   onLongPress: () {
-                    Provider.of<ShoppingCartNotifier>(context, listen: false)
-                        .removeDish(
-                      stallId,
-                      DishWithOptions(
-                        dish: dish,
-                        enabledOptions: [
-                          ...dish.options,
-                        ],
+                    // Provider.of<ShoppingCartNotifier>(context, listen: false)
+                    //     .removeDish(
+                    //   stallId,
+                    //   DishWithOptions(
+                    //     dish: dish,
+                    //     enabledOptions: [
+                    //       ...dish.options,
+                    //     ],
+                    //   ),
+                    // );
+                    final windowPadding =
+                        Provider.of<EdgeInsets>(context, listen: false);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Provider.value(
+                          value: windowPadding,
+                          child: DishEditScreen(
+                            dish: dish,
+                            stallId: stallId,
+                          ),
+                        ),
+                        fullscreenDialog: true,
                       ),
                     );
                   },
@@ -357,152 +375,3 @@ class MenuGridItem extends StatelessWidget {
     );
   }
 }
-
-// class FoodItem extends StatefulWidget {
-//   final String stallName;
-//   final MenuItem menuItem;
-//   FoodItem({
-//     Key key,
-//     @required this.stallName,
-//     @required this.menuItem,
-//   }) : super(key: key);
-//   _FoodItemState createState() => _FoodItemState();
-// }
-
-// class _FoodItemState extends State<FoodItem>
-//     with AutomaticKeepAliveClientMixin {
-//   double shadow = 0;
-//   void Function(Order order) addOrder;
-//   void Function(Order order) removeOrder;
-//   Order order;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     // TODO: Add the extra stuff in the order here as well, after adding the extra stuff in the Order class in order_data.dart
-//     order = Order(stallName: widget.stallName, menuItem: widget.menuItem);
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     super.build(context);
-//     double screenWidth = MediaQuery.of(context).size.width;
-//     double cardWidth = (screenWidth - 8.0 * 3) / 2;
-//     return ProxyProvider<OrderNotifier, bool>(
-//       initialBuilder: (context) => false,
-//       builder: (context, orderNotifier, isOrdered) {
-//         final List<Order> orders = orderNotifier.orders;
-//         addOrder = orderNotifier.addOrder;
-//         removeOrder = orderNotifier.removeOrder;
-//         if (orders.isEmpty) return false;
-//         return !orders.every((order) {
-//           return order.stallName != widget.stallName ||
-//               order.menuItem != widget.menuItem;
-//         });
-//       },
-//       dispose: (context, isOrdered) => isOrdered = false,
-//       child: Container(
-//         padding: EdgeInsets.symmetric(
-//           vertical: 6.0,
-//         ),
-//         child: Column(
-//           children: <Widget>[
-//             Stack(
-//               fit: StackFit.passthrough,
-//               children: <Widget>[
-//                 Material(
-//                   color: Theme.of(context).dividerColor,
-//                   elevation: shadow,
-//                   shadowColor: Theme.of(context).brightness == Brightness.dark
-//                       ? Colors.yellowAccent
-//                       : Colors.black,
-//                   shape: ContinuousRectangleBorder(
-//                     borderRadius: BorderRadius.circular(24),
-//                   ),
-//                   clipBehavior: Clip.antiAlias,
-//                   child: SizedBox(
-//                     height: cardWidth,
-//                     width: cardWidth,
-//                     child: FirebaseImage(
-//                       widget.menuItem.image,
-//                       fallbackMemoryImage: kErrorImage,
-//                       fadeInDuration: const Duration(milliseconds: 300),
-//                     ),
-//                   ),
-//                 ),
-//                 Consumer<bool>(
-//                   builder: (context, isOrdered, child) {
-//                     return Stack(
-//                       fit: StackFit.passthrough,
-//                       children: <Widget>[
-//                         AnimatedOpacity(
-//                           opacity: isOrdered ? 1 : 0,
-//                           duration: const Duration(milliseconds: 200),
-//                           curve: Curves.ease,
-//                           child: ClipPath(
-//                             clipper: ShapeBorderClipper(
-//                               shape: ContinuousRectangleBorder(
-//                                 borderRadius: BorderRadius.circular(24),
-//                               ),
-//                             ),
-//                             child: Container(
-//                               color: Colors.black.withOpacity(0.5),
-//                               width: cardWidth,
-//                               height: cardWidth,
-//                               child: Icon(
-//                                 Icons.done,
-//                                 size: 64,
-//                                 color: Colors.white,
-//                               ),
-//                             ),
-//                           ),
-//                         ),
-//                         Material(
-//                           type: MaterialType.transparency,
-//                           shape: ContinuousRectangleBorder(
-//                             borderRadius: BorderRadius.circular(24),
-//                           ),
-//                           clipBehavior: Clip.antiAlias,
-//                           child: InkWell(
-//                             onTap: () {
-//                               if (isOrdered)
-//                                 removeOrder(order);
-//                               else
-//                                 addOrder(order);
-//                               setState(() => shadow = 0);
-//                             },
-//                             onTapDown: (_) {
-//                               setState(() => shadow = 8);
-//                             },
-//                             onTapCancel: () {
-//                               setState(() => shadow = 0);
-//                             },
-//                             child: SizedBox(
-//                               width: cardWidth,
-//                               height: cardWidth,
-//                             ),
-//                           ),
-//                         ),
-//                       ],
-//                     );
-//                   },
-//                 ),
-//               ],
-//             ),
-//             SizedBox(
-//               height: 6.0,
-//             ),
-//             Text(widget.menuItem.name),
-//             Text(
-//               '\$${widget.menuItem.price.toStringAsFixed(2)}',
-//               style: Theme.of(context).textTheme.subtitle,
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-
-//   @override
-//   bool get wantKeepAlive => false;
-// }

@@ -98,47 +98,6 @@ class BoltApp extends StatelessWidget {
             });
           },
         ),
-        // Provider for all values in FirebaseDatabase. This provider updates whenever database value changes (which is quite frequently). All other providers for indivual values in the database listen to this main provider and update accordingly.
-        // StreamProvider<List<StallData>>(
-        //   builder: (context) => FirebaseDatabase.instance
-        //       .reference()
-        //       .child('stalls')
-        //       .onValue
-        //       .map<List<StallData>>((event) {
-        //     if (event == null) return null;
-        //     Map<String, dynamic> map =
-        //         Map<String, dynamic>.from(event.snapshot.value);
-        //     var stallDataList = map
-        //         .map((key, value) {
-        //           return MapEntry(StallData.fromJson(key, value), 0);
-        //         })
-        //         .keys
-        //         .toList();
-        //     return stallDataList;
-        //   }),
-        //   catchError: (context, object) {
-        //     // TODO: handle errors, e.g. number of users exceeded Firebase maximum
-        //     print(object);
-        //   },
-        // ),
-        // Provider for the list of stall names and stall images. More is said in stall_data.dart. This should be rarely updated.
-        // ProxyProvider<List<StallData>, List<StallNameAndImage>>(
-        //   builder: (context, stallDataList, stallNameAndImage) {
-        //     if (stallDataList == null) return null;
-        //     return stallDataList
-        //         .map((stallData) => StallNameAndImage.fromStallData(stallData))
-        //         .toList();
-        //   },
-        //   updateShouldNotify: (list1, list2) {
-        //     if (list1?.length != list2?.length) return true;
-        //     int i = -1;
-        //     // Checking if every item in list is equivalent. Normal '==' operator does not work for lists.
-        //     return !list1.every((item) {
-        //       i++;
-        //       return item.name == list2[i].name && item.image == list2[i].image;
-        //     });
-        //   },
-        // ),
         // The actual byte data of images is stored here. Initially, it's an empty map, with the key being the image's path name, and the Uint8List being the raw data. This is needed because images in the app will rebuild due to theme changes or stall data changes, and when they rebuild, they can easily access the stored data here instead of getting the image from device storage or Firebase again.
         Provider<Map<String, Uint8List>>.value(
           value: {},
@@ -379,6 +338,7 @@ class LoadingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final windowPadding = Provider.of<EdgeInsets>(context);
     final double width = MediaQuery.of(context).size.width;
+    if (width == 0) return SizedBox.shrink();
     final bool isDark = Provider.of<ThemeNotifier>(context).isDarkMode;
     Color baseColor =
         isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.14);
