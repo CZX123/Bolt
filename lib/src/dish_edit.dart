@@ -32,10 +32,13 @@ class QuantityDishOptions {
 }
 
 class DishEditScreen extends StatefulWidget {
+  /// Required for the hero animation
+  final String tag;
   final StallId stallId;
   final Dish dish;
   const DishEditScreen({
     Key key,
+    @required this.tag,
     @required this.stallId,
     @required this.dish,
   }) : super(key: key);
@@ -94,8 +97,8 @@ class _DishEditScreenState extends State<DishEditScreen> {
     if (!loaded) {
       loaded = true;
       final orders =
-          Provider.of<ShoppingCartNotifier>(context, listen: false).orders;
-      orders[widget.stallId]?.forEach((dish, quantity) {
+          Provider.of<CartModel>(context, listen: false).orders;
+      orders.value[widget.stallId]?.forEach((dish, quantity) {
         if (dish.dish == widget.dish) {
           dishes.add(QuantityDishOptions(
             quantity: quantity,
@@ -128,7 +131,8 @@ class _DishEditScreenState extends State<DishEditScreen> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Hero(
-                  tag: widget.dish,
+                  tag: widget.tag,
+                  createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
                   child: ClipPath(
                     clipper: ShapeBorderClipper(
                         shape: ContinuousRectangleBorder(

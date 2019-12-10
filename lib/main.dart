@@ -22,34 +22,20 @@ class _BoltAppState extends State<BoltApp> {
   /// Stream that checks whether user is connected to Firebase
   final _streamController =
       StreamController<FirebaseConnectionState>(sync: true);
+
+  /// Actual subscription to the Firebase connected stream.
+  /// More info: https://firebase.google.com/docs/database/web/offline-capabilities#section-connection-state
   StreamSubscription<Event> _firebaseConnectionSubscription;
-
-  Stream<StallDetailsMap> _stallDetailsStream;
-  Stream<StallMenuMap> _stallMenuStream;
-
-  final _stallIdList = StallIdList();
-
-  final _themeNotifier = ThemeNotifier();
-
-  void _initSharedPreferences() {
-    SharedPreferences.getInstance().then((prefs) {
-      final isDark = prefs.getBool('isDark');
-      if (isDark == null) _firstTime = true;
-      _themeNotifier.isDark = isDark ?? false;
-    });
-  }
-
   void _initFirebaseConnectionSubscription() {
     // Wait for 3 seconds, then listen to the firebase connection stream
     // This is because the stream below returns [FirebaseConnectionState.disconnected] initially when app is loading, which is not ideal as it shows no internet momentarily even if app instantly loads
     Future.delayed(const Duration(seconds: 3), () {
-      // Is there a need to add a value to the stream controller here as well?
-      // ..
       _firebaseConnectionSubscription = _firebaseDatabase
           .reference()
           .child('.info/connected')
           .onValue
           .listen((event) {
+        // Forward the value to _streamController when the actual subscription changes
         _streamController.add(
           event.snapshot.value
               ? FirebaseConnectionState.connected
@@ -59,6 +45,9 @@ class _BoltAppState extends State<BoltApp> {
     });
   }
 
+  final _stallIdList = StallIdList();
+
+  Stream<StallDetailsMap> _stallDetailsStream;
   void _initStallDetailsStream() {
     _stallDetailsStream = _firebaseDatabase
         .reference()
@@ -85,6 +74,7 @@ class _BoltAppState extends State<BoltApp> {
     });
   }
 
+  Stream<StallMenuMap> _stallMenuStream;
   void _initStallMenuStream() {
     _stallMenuStream = FirebaseDatabase.instance
         .reference()
@@ -106,6 +96,16 @@ class _BoltAppState extends State<BoltApp> {
         }
       });
       return StallMenuMap(stallMenus);
+    });
+  }
+
+  final _themeModel = ThemeModel();
+
+  void _initSharedPreferences() {
+    SharedPreferences.getInstance().then((prefs) {
+      final isDark = prefs.getBool('isDark');
+      if (isDark == null) _firstTime = true;
+      _themeModel.isDark = isDark ?? false;
     });
   }
 
@@ -137,7 +137,7 @@ class _BoltAppState extends State<BoltApp> {
         ),
         // Provider for ThemeData. Only used in settings, and rebuilding entire MaterialApp
         ChangeNotifierProvider.value(
-          value: _themeNotifier,
+          value: _themeModel,
         ),
         // Provider for list of stall ids. Should never change, unless stalls are added or removed.
         ChangeNotifierProvider.value(
@@ -158,19 +158,22 @@ class _BoltAppState extends State<BoltApp> {
         ),
         // Provider for currently ordered items. See order_data.dart for more.
         ChangeNotifierProvider(
-          builder: (_) => ShoppingCartNotifier(),
+          builder: (_) => CartModel(),
         ),
       ],
-      child: Consumer<ThemeNotifier>(
-        builder: (context, themeNotifier, widget) {
-          return MaterialApp(
-            title: 'Bolt',
-            theme: themeNotifier.currentThemeData,
-            onGenerateRoute: (settings) {
-              return PageRouteBuilder(
-                pageBuilder: (context, _, __) => Home(),
-              );
-            },
+      child: Consumer<ThemeModel>(
+        builder: (context, themeModel, widget) {
+          return Container(
+            color: themeModel.currentThemeData.scaffoldBackgroundColor,
+            child: MaterialApp(
+              title: 'Bolt',
+              theme: themeModel.currentThemeData,
+              onGenerateRoute: (settings) {
+                return CrossFadePageRoute(
+                  builder: (_) => Home(),
+                );
+              },
+            ),
           );
         },
       ),
@@ -359,7 +362,8 @@ class _HomeState extends State<Home> {
                                     builder: (context, value, child) {
                                       return AnimatedContainer(
                                         color: Theme.of(context)
-                                            .scaffoldBackgroundColor.withOpacity(.9),
+                                            .scaffoldBackgroundColor
+                                            .withOpacity(.92),
                                         foregroundDecoration: BoxDecoration(
                                           border: Border(
                                             bottom: BorderSide(

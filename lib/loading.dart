@@ -6,7 +6,7 @@ class LoadingScreen extends StatelessWidget {
     final windowPadding = Provider.of<EdgeInsets>(context);
     final double width = MediaQuery.of(context).size.width;
     if (width == 0) return SizedBox.shrink();
-    final bool isDark = Provider.of<ThemeNotifier>(context).isDark;
+    final bool isDark = Provider.of<ThemeModel>(context).isDark;
     Color baseColor =
         isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.14);
     Color highlightColor =

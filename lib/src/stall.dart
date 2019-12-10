@@ -123,7 +123,7 @@ class _StallImageState extends State<StallImage> {
             alignment = Alignment.centerRight;
             scale += imageOffset;
           }
-          return ClipRect(
+          return Material(
             clipBehavior: clipping ? Clip.hardEdge : Clip.none,
             child: Transform.translate(
               offset: Offset(imageOffset * width * (clipping ? 1 : 2), 0),
@@ -189,9 +189,6 @@ class MenuGridItem extends StatelessWidget {
                   return Material(
                     color: Theme.of(context).dividerColor,
                     elevation: value,
-                    shadowColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.yellowAccent
-                        : Colors.black,
                     shape: ContinuousRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -199,7 +196,8 @@ class MenuGridItem extends StatelessWidget {
                   );
                 },
                 child: Hero(
-                  tag: dish,
+                  tag: '$stallId ${dish.id}',
+                  createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
                   child: ClipPath(
                     clipper: ShapeBorderClipper(
                       shape: ContinuousRectangleBorder(
@@ -232,7 +230,7 @@ class MenuGridItem extends StatelessWidget {
                       orderSheetController.animateTo(BottomSheetPosition.end);
                     }
                     // Add the dish to cart
-                    Provider.of<ShoppingCartNotifier>(context, listen: false)
+                    Provider.of<CartModel>(context, listen: false)
                         .addDish(
                       stallId,
                       DishWithOptions(
@@ -251,7 +249,7 @@ class MenuGridItem extends StatelessWidget {
                     shadowNotifier.value = 0;
                   },
                   onLongPress: () {
-                    // Provider.of<ShoppingCartNotifier>(context, listen: false)
+                    // Provider.of<CartModel>(context, listen: false)
                     //     .removeDish(
                     //   stallId,
                     //   DishWithOptions(
@@ -270,6 +268,7 @@ class MenuGridItem extends StatelessWidget {
                           return Provider.value(
                             value: windowPadding,
                             child: DishEditScreen(
+                              tag: '$stallId ${dish.id}',
                               dish: dish,
                               stallId: stallId,
                             ),

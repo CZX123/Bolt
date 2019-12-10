@@ -8,19 +8,10 @@ class OrderScreen extends StatefulWidget {
 
 class _OrderScreenState extends State<OrderScreen> {
   ScrollController scrollController = ScrollController();
-  final _listKey = GlobalKey<AnimatedListState>();
 
   @override
   Widget build(BuildContext context) {
     final windowPadding = Provider.of<EdgeInsets>(context);
-    final thumbnails = Provider.of<ShoppingCartNotifier>(
-      context,
-      listen: false,
-    ).orderThumbnails;
-    Provider.of<ShoppingCartNotifier>(
-      context,
-      listen: false,
-    ).animatedListKey = _listKey;
     final orderSheetController = Provider.of<BottomSheetController>(context);
     orderSheetController.activeScrollController = scrollController;
     return CustomBottomSheet(
@@ -55,7 +46,7 @@ class _OrderScreenState extends State<OrderScreen> {
                             windowPadding.top -
                             windowPadding.bottom,
                       ),
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.fromLTRB(0, 32, 0, 32),
                       child: ListOfOrders(),
                     ),
                     SizedBox(
@@ -65,146 +56,7 @@ class _OrderScreenState extends State<OrderScreen> {
                 ),
               ),
             ),
-            ValueListenableBuilder(
-              valueListenable: orderSheetController.altAnimation,
-              builder: (context, value, child) {
-                return IgnorePointer(
-                  ignoring: value > 0.05,
-                  child: child,
-                );
-              },
-              child: Stack(
-                children: <Widget>[
-                  ValueListenableBuilder(
-                    valueListenable: orderSheetController.altAnimation,
-                    builder: (context, value, child) {
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Container(
-                            padding: const EdgeInsets.only(top: 8),
-                            height: value.clamp(0.0, 1.0) *
-                                    (windowPadding.top - 12) +
-                                12,
-                            alignment: Alignment.topCenter,
-                            child: Container(
-                              height: 4,
-                              width: 24,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).dividerColor,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          child,
-                        ],
-                      );
-                    },
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        FadeTransition(
-                          opacity: Tween<double>(
-                            begin: 1,
-                            end: -4,
-                          ).animate(orderSheetController.altAnimation),
-                          child: SizedBox(
-                            height: 66,
-                            child: Selector<ShoppingCartNotifier, int>(
-                                selector: (context, cart) =>
-                                    max(cart.orderThumbnails.length, 5),
-                                builder: (context, value, child) {
-                                  return AnimatedList(
-                                    padding: EdgeInsets.all(8),
-                                    key: _listKey,
-                                    scrollDirection: Axis.horizontal,
-                                    shrinkWrap: true,
-                                    initialItemCount: min(thumbnails.length, 5),
-                                    itemBuilder: (context, index, animation) {
-                                      Widget element = SizedBox(
-                                        height: 48,
-                                        child: CustomImage(
-                                          thumbnails[index],
-                                          fadeInDuration: null,
-                                          fallbackMemoryImage: kErrorImage,
-                                        ),
-                                      );
-                                      if (index == 4 && thumbnails.length > 5)
-                                        element = Container(
-                                          color: Theme.of(context).dividerColor,
-                                          height: 48,
-                                          width: 48,
-                                          alignment: Alignment.center,
-                                          child: AnimatedSwitcher(
-                                            duration: const Duration(
-                                                milliseconds: 200),
-                                            switchInCurve: Interval(0.5, 1,
-                                                curve: Curves.easeIn),
-                                            switchOutCurve: Interval(0.5, 1,
-                                                curve: Curves.easeOut),
-                                            child: Text(
-                                              '+${thumbnails.length - 4}',
-                                              key: ValueKey(thumbnails.length),
-                                            ),
-                                          ),
-                                        );
-                                      return SizeTransition(
-                                        key: ValueKey(index),
-                                        axis: Axis.horizontal,
-                                        sizeFactor: CurvedAnimation(
-                                            curve: Curves.fastOutSlowIn,
-                                            parent: animation),
-                                        child: ScaleTransition(
-                                          scale: CurvedAnimation(
-                                              curve: Curves.fastOutSlowIn,
-                                              parent: animation),
-                                          child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                4, 0, 4, 0),
-                                            child: ClipPath(
-                                              clipper: ShapeBorderClipper(
-                                                  shape:
-                                                      ContinuousRectangleBorder(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(
-                                                                      20))),
-                                              child: AnimatedSwitcher(
-                                                duration:
-                                                    Duration(milliseconds: 100),
-                                                child: element,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  );
-                                }),
-                          ),
-                        ),
-                        SizedBox(
-                          height: windowPadding.bottom,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Material(
-                    type: MaterialType.transparency,
-                    child: FlatButton(
-                      shape: ContinuousRectangleBorder(),
-                      onPressed: () {
-                        orderSheetController.animateTo(BottomSheetPosition.end);
-                      },
-                      child: Container(
-                        height: 66 + 12 + windowPadding.bottom + 20,
-                        width: double.infinity,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            OrderPreview(),
           ],
         );
       },
@@ -212,42 +64,219 @@ class _OrderScreenState extends State<OrderScreen> {
   }
 }
 
-class ListOfOrders extends StatelessWidget {
-  const ListOfOrders({Key key}) : super(key: key);
+/// [OrderPreview] is the row of small thumbnail icons in the order screen that exist when order sheet is collapsed
+class OrderPreview extends StatelessWidget {
+  const OrderPreview({Key key}) : super(key: key);
 
-  List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
-    return options.map((option) {
-      return Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 4,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(8),
-            topRight: Radius.circular(69),
-            bottomLeft: Radius.circular(69),
-            bottomRight: Radius.circular(69),
-          ),
-          color: Colors.primaries[option.colourCode],
-        ),
-        child: Text(
-          option.name,
-          style: Theme.of(context).textTheme.subtitle.copyWith(
-                color:
-                    Colors.primaries[option.colourCode].computeLuminance() < .6
-                        ? Colors.white
-                        : Colors.black87,
+  /// Transition Builder for the [AnimatedSwitcher] used
+  Widget transitionBuilder(
+    num diff,
+    Widget child,
+    Animation<double> animation,
+  ) {
+    final fadeCurveAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Interval(.3, 1),
+      reverseCurve: Interval(.65, 1),
+    );
+    final scaleCurveAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Interval(.3, 1, curve: Curves.fastOutSlowIn),
+      reverseCurve: Interval(.65, 1, curve: Curves.fastOutSlowIn),
+    );
+    final offsetCurveAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.fastOutSlowIn,
+      reverseCurve: Curves.fastOutSlowIn.flipped,
+    );
+    return ScaleTransition(
+      scale: Tween<double>(begin: .95, end: 1).animate(scaleCurveAnimation),
+      child: FadeTransition(
+        opacity: fadeCurveAnimation,
+        child: AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            final offsetTween = Tween<Offset>(
+              begin: Offset(
+                (animation.status == AnimationStatus.reverse)
+                    ? -diff * 52.0
+                    : diff * 52.0,
+                0,
               ),
+              end: Offset.zero,
+            );
+            return Transform.translate(
+              offset: offsetTween.evaluate(offsetCurveAnimation),
+              child: child,
+            );
+          },
+          child: child,
         ),
-      );
-    }).toList();
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ShoppingCartNotifier,
-        Map<StallId, Map<DishWithOptions, int>>>(
+    final windowPadding = Provider.of<EdgeInsets>(context);
+    final thumbnails = Provider.of<CartModel>(
+      context,
+      listen: false,
+    ).orderThumbnails;
+    int previousLength = max(thumbnails.length, 1);
+    final orderSheetController = Provider.of<BottomSheetController>(context);
+    return ValueListenableBuilder(
+      valueListenable: orderSheetController.altAnimation,
+      builder: (context, value, child) {
+        return IgnorePointer(
+          ignoring: value > 0.05,
+          child: child,
+        );
+      },
+      child: Stack(
+        children: <Widget>[
+          ValueListenableBuilder(
+            valueListenable: orderSheetController.altAnimation,
+            builder: (context, value, child) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.only(top: 8),
+                    height:
+                        value.clamp(0.0, 1.0) * (windowPadding.top - 12) + 12,
+                    alignment: Alignment.topCenter,
+                    child: Container(
+                      height: 4,
+                      width: 24,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).dividerColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  child,
+                ],
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.only(bottom: windowPadding.bottom),
+              child: FadeTransition(
+                opacity: Tween<double>(
+                  begin: 1,
+                  end: -4,
+                ).animate(orderSheetController.altAnimation),
+                child: SizedBox(
+                  height: 66,
+                  child: Selector<CartModel, int>(
+                    selector: (context, cart) {
+                      return min(cart.orderThumbnails.length, 5);
+                    },
+                    builder: (context, length, child) {
+                      final diff = length - previousLength;
+                      previousLength = max(length, 1);
+                      return AnimatedSwitcher(
+                        transitionBuilder: (child, animation) {
+                          return transitionBuilder(diff, child, animation);
+                        },
+                        duration: const Duration(milliseconds: 280),
+                        child: Row(
+                          key: ValueKey(length),
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            for (int i = 0; i < length; i++)
+                              OrderPreviewThumbnail(
+                                last: i == length - 1,
+                                image: thumbnails[i],
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Material(
+            type: MaterialType.transparency,
+            child: FlatButton(
+              shape: ContinuousRectangleBorder(),
+              onPressed: () {
+                orderSheetController.animateTo(BottomSheetPosition.start);
+              },
+              child: Container(
+                height: 66 + 12 + windowPadding.bottom + 20,
+                width: double.infinity,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Individual thumbnail for the [OrderPreview]
+class OrderPreviewThumbnail extends StatelessWidget {
+  final bool last;
+  final String image;
+  const OrderPreviewThumbnail({
+    Key key,
+    this.last = false,
+    @required this.image,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final child = SizedBox(
+      height: 48,
+      child: CustomImage(
+        image,
+        fadeInDuration: null,
+        fallbackMemoryImage: kErrorImage,
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 9, 4, 9),
+      child: Material(
+        color: Theme.of(context).dividerColor,
+        shape: ContinuousRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: last
+            ? Selector<CartModel, int>(
+                selector: (context, cart) {
+                  return max(cart.orderThumbnails.length, 5);
+                },
+                builder: (context, length, _) {
+                  return CustomAnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: length > 5
+                        ? Container(
+                            key: ValueKey(length),
+                            height: 48,
+                            width: 48,
+                            alignment: Alignment.center,
+                            child: Text('+${length - 4}'),
+                          )
+                        : child,
+                  );
+                },
+              )
+            : child,
+      ),
+    );
+  }
+}
+
+class ListOfOrders extends StatelessWidget {
+  const ListOfOrders({Key key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Selector<CartModel, Orders>(
       selector: (context, cart) => cart.orders,
       builder: (context, orders, child) {
         return Column(
@@ -256,15 +285,15 @@ class ListOfOrders extends StatelessWidget {
           children: <Widget>[
             const SizedBox.shrink(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
               child: Text(
-                orders.length == 0 ? 'No Orders' : 'Orders',
+                orders.value.length == 0 ? 'No Orders' : 'Orders',
                 style: Theme.of(context).textTheme.display3,
               ),
             ),
             Column(
               children: <Widget>[
-                if (orders.length == 0)
+                if (orders.value.length == 0)
                   FlatButton(
                     child: Text('Go back'),
                     onPressed: () {
@@ -272,12 +301,12 @@ class ListOfOrders extends StatelessWidget {
                     },
                   )
                 else
-                  for (var stallId in orders.keys)
+                  for (var stallId in orders.value.keys)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         Container(
-                          padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+                          padding: const EdgeInsets.fromLTRB(32, 16, 32, 8),
                           child: Selector<StallDetailsMap, String>(
                             selector: (context, stallDetailsMap) {
                               return stallDetailsMap.value[stallId].name;
@@ -290,9 +319,10 @@ class ListOfOrders extends StatelessWidget {
                             },
                           ),
                         ),
-                        for (var dish in orders[stallId].keys)
+                        for (var dish in orders.value[stallId].keys)
                           OrderDishRow(
-                            quantity: orders[stallId][dish],
+                            stallId: stallId,
+                            quantity: orders.value[stallId][dish],
                             dish: dish,
                           ),
                       ],
@@ -309,10 +339,15 @@ class ListOfOrders extends StatelessWidget {
 }
 
 class OrderDishRow extends StatelessWidget {
+  final StallId stallId;
   final int quantity;
   final DishWithOptions dish;
-  const OrderDishRow({Key key, @required this.quantity, @required this.dish})
-      : super(key: key);
+  const OrderDishRow({
+    Key key,
+    @required this.stallId,
+    @required this.quantity,
+    @required this.dish,
+  }) : super(key: key);
 
   List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
     return options.map((option) {
@@ -351,69 +386,94 @@ class OrderDishRow extends StatelessWidget {
       price += option.addCost;
     });
     price *= quantity;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ClipPath(
-            clipper: ShapeBorderClipper(
-                shape: ContinuousRectangleBorder(
-                    borderRadius: BorderRadius.circular(20))),
-            child: SizedBox(
-              height: 80,
-              child: CustomImage(
-                dish.dish.image,
-                fadeInDuration: null,
-              ),
-            ),
-          ),
-          const SizedBox(
-            width: 16,
-          ),
-          Column(
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: () {
+          final windowPadding = Provider.of<EdgeInsets>(context, listen: false);
+          Navigator.push(context, CrossFadePageRoute(
+            builder: (_) {
+              return Provider.value(
+                value: windowPadding,
+                child: DishEditScreen(
+                  tag: '$stallId ${dish.dish.id} fromOrderScreen',
+                  stallId: stallId,
+                  dish: dish.dish,
+                ),
+              );
+            },
+          ));
+        },
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
+          child: Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(quantity.toString() + '× ' + dish.dish.name),
-              const SizedBox(
-                height: 1,
-              ),
-              Text(
-                '\$${price.toStringAsFixed(2)}',
-                style: Theme.of(context).textTheme.subtitle,
-              ),
-              const SizedBox(
-                height: 4,
-              ),
-              if (dish.enabledOptions.isNotEmpty)
-                SizedBox(
-                  width: width - 192.1,
-                  child: Wrap(
-                    spacing: 5,
-                    runSpacing: 3,
-                    children: dishOptions(context, dish.enabledOptions),
+              Hero(
+                tag: '$stallId ${dish.dish.id} fromOrderScreen',
+                createRectTween: (a, b) =>
+                    MaterialRectCenterArcTween(begin: a, end: b),
+                child: ClipPath(
+                  clipper: ShapeBorderClipper(
+                      shape: ContinuousRectangleBorder(
+                          borderRadius: BorderRadius.circular(20))),
+                  child: SizedBox(
+                    height: 80,
+                    child: CustomImage(
+                      dish.dish.image,
+                      fadeInDuration: null,
+                    ),
                   ),
                 ),
+              ),
               const SizedBox(
-                height: 2,
+                width: 16,
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(quantity.toString() + '× ' + dish.dish.name),
+                  const SizedBox(
+                    height: 1,
+                  ),
+                  Text(
+                    '\$${price.toStringAsFixed(2)}',
+                    style: Theme.of(context).textTheme.subtitle,
+                  ),
+                  const SizedBox(
+                    height: 4,
+                  ),
+                  if (dish.enabledOptions.isNotEmpty)
+                    SizedBox(
+                      width: width - 192.1,
+                      child: Wrap(
+                        spacing: 5,
+                        runSpacing: 3,
+                        children: dishOptions(context, dish.enabledOptions),
+                      ),
+                    ),
+                  const SizedBox(
+                    height: 2,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 }
 
 class TotalCostWidget extends StatelessWidget {
-  final Map<StallId, Map<DishWithOptions, int>> orders;
+  final Orders orders;
   const TotalCostWidget({Key key, @required this.orders}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     num cost = 0;
-    orders.forEach((stallId, stallOrders) {
+    orders.value.forEach((stallId, stallOrders) {
       stallOrders.forEach((dish, quantity) {
         num price = dish.dish.unitPrice;
         dish.enabledOptions.forEach((option) {
@@ -425,6 +485,7 @@ class TotalCostWidget extends StatelessWidget {
     });
     return Padding(
       padding: const EdgeInsets.symmetric(
+        horizontal: 32,
         vertical: 16,
       ),
       child: Column(

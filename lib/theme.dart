@@ -1,6 +1,6 @@
 import 'library.dart';
 
-class ThemeNotifier with ChangeNotifier {
+class ThemeModel with ChangeNotifier {
 
   bool _isDark = false;
   set isDark(bool value) {

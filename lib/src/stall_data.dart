@@ -189,7 +189,7 @@ class Dish {
     this.options,
   });
 
-  factory Dish.fromJson(String cat, String dishId, dynamic parsedJson) {
+  factory Dish.fromJson(String category, String dishId, dynamic parsedJson) {
     List<DishOption> options = [];
     Map map;
     if (parsedJson['options'] != null) {
@@ -204,7 +204,7 @@ class Dish {
         options.add(DishOption.fromJson(key.toString(), value));
     });
     return Dish(
-      category: cat,
+      category: category,
       id: int.parse(dishId),
       name: parsedJson['name'],
       available: parsedJson['available'],

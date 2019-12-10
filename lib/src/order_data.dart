@@ -1,119 +1,47 @@
 import '../library.dart';
 
-class ShoppingCartNotifier extends ChangeNotifier {
-  ShoppingCartNotifier();
+/// A wrapper class that contains all the orders in the shopping cart. It is a wrapper for a [Map<StallId, Map<DishWithOptions, int>>]
+class Orders {
+  Map<StallId, Map<DishWithOptions, int>> value = {};
+}
 
-  GlobalKey<AnimatedListState> animatedListKey;
+class CartModel extends ChangeNotifier {
+  CartModel();
 
-  // List<Order> _orders = [];
-  // List<Order> get orders => _orders;
-
-  Map<StallId, Map<DishWithOptions, int>> _orders = {};
-  Map<StallId, Map<DishWithOptions, int>> get orders => _orders;
+  Orders _orders = Orders();
+  Orders get orders => _orders;
 
   List<String> _orderThumbnails = [];
   List<String> get orderThumbnails => _orderThumbnails;
-
-  Widget Function(BuildContext, Animation<double>) _builder(String image) {
-    return (context, animation) {
-      return SizeTransition(
-        axis: Axis.horizontal,
-        sizeFactor: CurvedAnimation(
-          curve: Curves.fastOutSlowIn.flipped,
-          parent: animation,
-        ),
-        child: ScaleTransition(
-          scale: CurvedAnimation(
-            curve: Curves.fastOutSlowIn.flipped,
-            parent: animation,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: ClipPath(
-              clipper: ShapeBorderClipper(
-                shape: ContinuousRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: SizedBox(
-                height: 48,
-                child: CustomImage(
-                  image,
-                  fadeInDuration: null,
-                  fallbackMemoryImage: kErrorImage,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    };
-  }
 
   void addDish(
     StallId stallId,
     DishWithOptions dishWithOptions, [
     int count = 1,
   ]) {
-    if (_orders.containsKey(stallId)) {
-      if (_orders[stallId].containsKey(dishWithOptions)) {
-        _orders[stallId][dishWithOptions] += count;
+    if (_orders.value.containsKey(stallId)) {
+      if (_orders.value[stallId].containsKey(dishWithOptions)) {
+        _orders.value[stallId][dishWithOptions] += count;
       } else {
-        _orders[stallId][dishWithOptions] = count;
+        _orders.value[stallId][dishWithOptions] = count;
         int index = 0;
-        for (var id in _orders.keys) {
+        for (var id in _orders.value.keys) {
           if (id == stallId) break;
-          index += _orders[id].length;
+          index += _orders.value[id].length;
         }
-        index += _orders[stallId].keys.toList().indexOf(dishWithOptions);
+        index += _orders.value[stallId].keys.toList().indexOf(dishWithOptions);
         _orderThumbnails.insert(index, dishWithOptions.dish.image);
-        if (animatedListKey != null && animatedListKey.currentState.mounted) {
-          if (_orderThumbnails.length <= 5)
-            animatedListKey.currentState.insertItem(
-              index,
-              duration: const Duration(milliseconds: 200),
-            );
-          else if (index < 4) {
-            animatedListKey.currentState.insertItem(
-              index,
-              duration: const Duration(milliseconds: 200),
-            );
-            animatedListKey.currentState.removeItem(
-              4,
-              _builder(_orderThumbnails[4]),
-              duration: const Duration(milliseconds: 200),
-            );
-          }
-        }
       }
     } else {
-      _orders[stallId] = {};
-      _orders[stallId][dishWithOptions] = 1;
+      _orders.value[stallId] = {};
+      _orders.value[stallId][dishWithOptions] = 1;
       int index = 0;
-      for (var id in _orders.keys) {
+      for (var id in _orders.value.keys) {
         if (id == stallId) break;
-        index += _orders[id].length;
+        index += _orders.value[id].length;
       }
-      index += _orders[stallId].keys.toList().indexOf(dishWithOptions);
+      index += _orders.value[stallId].keys.toList().indexOf(dishWithOptions);
       _orderThumbnails.insert(index, dishWithOptions.dish.image);
-      if (animatedListKey != null && animatedListKey.currentState.mounted) {
-        if (_orderThumbnails.length <= 5)
-          animatedListKey.currentState.insertItem(
-            index,
-            duration: const Duration(milliseconds: 200),
-          );
-        else if (index < 4) {
-          animatedListKey.currentState.insertItem(
-            index,
-            duration: const Duration(milliseconds: 200),
-          );
-          animatedListKey.currentState.removeItem(
-            4,
-            _builder(_orderThumbnails[4]),
-            duration: const Duration(milliseconds: 200),
-          );
-        }
-      }
     }
     notifyListeners();
   }
@@ -123,12 +51,12 @@ class ShoppingCartNotifier extends ChangeNotifier {
     DishWithOptions dishWithOptions,
     int newQuantity,
   ) {
-    if (!_orders.containsKey(stallId) ||
-        !_orders[stallId].containsKey(dishWithOptions)) {
+    if (!_orders.value.containsKey(stallId) ||
+        !_orders.value[stallId].containsKey(dishWithOptions)) {
       addDish(stallId, dishWithOptions, newQuantity);
     } else if (newQuantity != null &&
-        newQuantity != _orders[stallId][dishWithOptions]) {
-      _orders[stallId][dishWithOptions] = newQuantity;
+        newQuantity != _orders.value[stallId][dishWithOptions]) {
+      _orders.value[stallId][dishWithOptions] = newQuantity;
       notifyListeners();
     }
   }
@@ -139,40 +67,20 @@ class ShoppingCartNotifier extends ChangeNotifier {
     DishWithOptions dishWithOptions, [
     bool removeEntirely = false,
   ]) {
-    if (!_orders.containsKey(stallId)) return;
-    final dishIndex = _orders[stallId].keys.toList().indexOf(dishWithOptions);
+    if (!_orders.value.containsKey(stallId)) return;
+    final dishIndex = _orders.value[stallId].keys.toList().indexOf(dishWithOptions);
     if (dishIndex == -1) return;
-    if (removeEntirely || _orders[stallId][dishWithOptions] <= 1) {
+    if (removeEntirely || _orders.value[stallId][dishWithOptions] <= 1) {
       int index = dishIndex;
-      for (var id in _orders.keys) {
+      for (var id in _orders.value.keys) {
         if (id == stallId) break;
-        index += _orders[id].length;
+        index += _orders.value[id].length;
       }
-      _orders[stallId].remove(dishWithOptions);
-      if (_orders[stallId].isEmpty) _orders.remove(stallId);
+      _orders.value[stallId].remove(dishWithOptions);
+      if (_orders.value[stallId].isEmpty) _orders.value.remove(stallId);
       _orderThumbnails.removeAt(index);
-      if (animatedListKey != null &&
-          animatedListKey.currentState.mounted &&
-          (_orderThumbnails.length < 5 || index < 4)) {
-        animatedListKey.currentState.removeItem(
-          index,
-          _builder(dishWithOptions.dish.image),
-          duration: const Duration(milliseconds: 200),
-        );
-        if (_orderThumbnails.length > 5) {
-          animatedListKey.currentState.insertItem(
-            3,
-            duration: const Duration(milliseconds: 200),
-          );
-        } else if (_orderThumbnails.length == 5) {
-          animatedListKey.currentState.insertItem(
-            4,
-            duration: const Duration(milliseconds: 200),
-          );
-        }
-      }
     } else {
-      _orders[stallId][dishWithOptions] -= 1;
+      _orders.value[stallId][dishWithOptions] -= 1;
     }
     notifyListeners();
   }

@@ -73,13 +73,13 @@ class CrossFadeTransition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Animation<double> scaleIn = Tween(
-      begin: .94,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: animation,
-      curve: Curves.fastOutSlowIn,
-    ));
+    // final Animation<double> scaleIn = Tween(
+    //   begin: .94,
+    //   end: 1.0,
+    // ).animate(CurvedAnimation(
+    //   parent: animation,
+    //   curve: Curves.fastOutSlowIn,
+    // ));
     final Animation<double> opacityIn = Tween(
       begin: -1.0,
       end: 1.0,
@@ -94,20 +94,17 @@ class CrossFadeTransition extends StatelessWidget {
           child: child,
         );
       },
-      child: ScaleTransition(
-        scale: scaleIn,
-        child: FadeTransition(
-          opacity: opacityIn,
-          child: fadeOut
-              ? FadeTransition(
-                  opacity: Tween(
-                    begin: 1.0,
-                    end: -1.0,
-                  ).animate(secondaryAnimation),
-                  child: child,
-                )
-              : child,
-        ),
+      child: FadeTransition(
+        opacity: opacityIn,
+        child: fadeOut
+            ? FadeTransition(
+                opacity: Tween(
+                  begin: 1.0,
+                  end: -1.0,
+                ).animate(secondaryAnimation),
+                child: child,
+              )
+            : child,
       ),
     );
   }
