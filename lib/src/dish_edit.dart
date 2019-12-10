@@ -32,7 +32,7 @@ class QuantityDishOptions {
 }
 
 class DishEditScreen extends StatefulWidget {
-  final int stallId;
+  final StallId stallId;
   final Dish dish;
   const DishEditScreen({
     Key key,
@@ -114,10 +114,6 @@ class _DishEditScreenState extends State<DishEditScreen> {
     // final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final topPadding = Provider.of<EdgeInsets>(context).top;
-    final stallList = Provider.of<List<StallDetails>>(context, listen: false);
-    final stallName = stallList.firstWhere((stall) {
-      return stall.id == widget.stallId;
-    }).name;
     return Scaffold(
       body: SingleChildScrollView(
         padding: EdgeInsets.all(32),
@@ -131,26 +127,37 @@ class _DishEditScreenState extends State<DishEditScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                ClipPath(
-                  clipper: ShapeBorderClipper(
-                      shape: ContinuousRectangleBorder(
-                          borderRadius: BorderRadius.circular(20))),
-                  child: SizedBox(
-                    height: 80,
-                    child: FirebaseImage(
-                      widget.dish.image,
-                      fadeInDuration: null,
+                Hero(
+                  tag: widget.dish,
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(
+                        shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    )),
+                    child: SizedBox(
+                      height: 80,
+                      child: CustomImage(
+                        widget.dish.image,
+                        fadeInDuration: null,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(
                   height: 16,
                 ),
-                Text(
-                  stallName,
-                  style: Theme.of(context).textTheme.display1.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
+                Selector<StallDetailsMap, String>(
+                  selector: (context, stallDetailsMap) {
+                    return stallDetailsMap.value[widget.stallId].name;
+                  },
+                  builder: (context, name, child) {
+                    return Text(
+                      name,
+                      style: Theme.of(context).textTheme.display1.copyWith(
+                            color: Theme.of(context).hintColor,
+                          ),
+                    );
+                  },
                 ),
                 const SizedBox(
                   height: 8,
@@ -501,9 +508,14 @@ class _DishEditRowState extends State<DishEditRow> {
                                   const SizedBox(width: 3),
                                   Text(
                                     'Add Options',
-                                    style: Theme.of(context).textTheme.subtitle.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .subtitle
+                                        .copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
                                   ),
                                   const SizedBox(width: 2),
                                 ],
@@ -573,7 +585,7 @@ class DishOptionDialog extends StatelessWidget {
             ),
             child: SizedBox(
               height: 80,
-              child: FirebaseImage(
+              child: CustomImage(
                 dish.dish.image,
                 fadeInDuration: null,
               ),

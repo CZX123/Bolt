@@ -1,18 +1,17 @@
 import 'library.dart';
 
 class ThemeNotifier with ChangeNotifier {
-  ThemeNotifier();
 
-  bool _isDarkMode = false;
-  set isDarkMode(bool value) {
-    _isDarkMode = value;
+  bool _isDark = false;
+  set isDark(bool value) {
+    _isDark = value;
     _currentThemeData = themeList[value ? 1 : 0];
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('isDarkMode', value);
+      prefs.setBool('isDark', value);
     });
     notifyListeners();
   }
-  bool get isDarkMode => _isDarkMode;
+  bool get isDark => _isDark;
 
   ThemeData _currentThemeData = themeList[0];
   ThemeData get currentThemeData => _currentThemeData;

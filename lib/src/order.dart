@@ -13,42 +13,79 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     final windowPadding = Provider.of<EdgeInsets>(context);
-    return Selector<ShoppingCartNotifier, bool>(
-      selector: (context, cart) => cart.orders.length > 0,
-      builder: (context, value, child) {
-        return CustomBottomSheet(
-          color: Theme.of(context).cardColor,
-          controllers: [scrollController],
-          headerHeight: value ? 66 + 12 + windowPadding.bottom : 0,
-          headerBuilder:
-              (context, animation, viewSheetCallback, innerBoxIsScrolled) {
-            final thumbnails =
-                Provider.of<ShoppingCartNotifier>(context, listen: false)
-                    .orderThumbnails;
-            Provider.of<ShoppingCartNotifier>(context, listen: false)
-                .animatedListKey = _listKey;
-            return AnimatedBuilder(
-              animation: animation,
-              builder: (context, child) {
+    final thumbnails = Provider.of<ShoppingCartNotifier>(
+      context,
+      listen: false,
+    ).orderThumbnails;
+    Provider.of<ShoppingCartNotifier>(
+      context,
+      listen: false,
+    ).animatedListKey = _listKey;
+    final orderSheetController = Provider.of<BottomSheetController>(context);
+    orderSheetController.activeScrollController = scrollController;
+    return CustomBottomSheet(
+      color: Theme.of(context).cardColor,
+      controller: orderSheetController,
+      body: (context) {
+        return Stack(
+          children: <Widget>[
+            SingleChildScrollView(
+              controller: scrollController,
+              physics: NeverScrollableScrollPhysics(),
+              child: FadeTransition(
+                opacity: Tween<double>(
+                  begin: -0.25,
+                  end: 1.5,
+                ).animate(orderSheetController.altAnimation),
+                child: Column(
+                  children: <Widget>[
+                    ValueListenableBuilder(
+                      valueListenable: orderSheetController.altAnimation,
+                      builder: (context, value, child) {
+                        return SizedBox(
+                          height:
+                              value.clamp(0.0, 1.0) * (windowPadding.top - 20) +
+                                  20,
+                        );
+                      },
+                    ),
+                    Container(
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height -
+                            windowPadding.top -
+                            windowPadding.bottom,
+                      ),
+                      padding: const EdgeInsets.all(32),
+                      child: ListOfOrders(),
+                    ),
+                    SizedBox(
+                      height: windowPadding.bottom,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            ValueListenableBuilder(
+              valueListenable: orderSheetController.altAnimation,
+              builder: (context, value, child) {
                 return IgnorePointer(
-                  ignoring: animation.value > 0.05,
+                  ignoring: value > 0.05,
                   child: child,
                 );
               },
               child: Stack(
                 children: <Widget>[
-                  AnimatedBuilder(
-                    animation: animation,
-                    builder: (context, child) {
+                  ValueListenableBuilder(
+                    valueListenable: orderSheetController.altAnimation,
+                    builder: (context, value, child) {
                       return Column(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           Container(
                             padding: const EdgeInsets.only(top: 8),
-                            height:
-                                animation.value.clamp(0.0, double.infinity) *
-                                        (windowPadding.top - 12) +
-                                    12,
+                            height: value.clamp(0.0, 1.0) *
+                                    (windowPadding.top - 12) +
+                                12,
                             alignment: Alignment.topCenter,
                             child: Container(
                               height: 4,
@@ -67,8 +104,10 @@ class _OrderScreenState extends State<OrderScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         FadeTransition(
-                          opacity: Tween<double>(begin: 1, end: -4)
-                              .animate(animation),
+                          opacity: Tween<double>(
+                            begin: 1,
+                            end: -4,
+                          ).animate(orderSheetController.altAnimation),
                           child: SizedBox(
                             height: 66,
                             child: Selector<ShoppingCartNotifier, int>(
@@ -84,7 +123,7 @@ class _OrderScreenState extends State<OrderScreen> {
                                     itemBuilder: (context, index, animation) {
                                       Widget element = SizedBox(
                                         height: 48,
-                                        child: FirebaseImage(
+                                        child: CustomImage(
                                           thumbnails[index],
                                           fadeInDuration: null,
                                           fallbackMemoryImage: kErrorImage,
@@ -154,7 +193,9 @@ class _OrderScreenState extends State<OrderScreen> {
                     type: MaterialType.transparency,
                     child: FlatButton(
                       shape: ContinuousRectangleBorder(),
-                      onPressed: viewSheetCallback,
+                      onPressed: () {
+                        orderSheetController.animateTo(BottomSheetPosition.end);
+                      },
                       child: Container(
                         height: 66 + 12 + windowPadding.bottom + 20,
                         width: double.infinity,
@@ -163,51 +204,8 @@ class _OrderScreenState extends State<OrderScreen> {
                   ),
                 ],
               ),
-            );
-          },
-          contentBuilder: (context, animation) {
-            return Stack(
-              fit: StackFit.passthrough,
-              children: <Widget>[
-                SingleChildScrollView(
-                  controller: scrollController,
-                  physics: NeverScrollableScrollPhysics(),
-                  child: FadeTransition(
-                    opacity: Tween<double>(begin: -0.25, end: 1.5)
-                        .animate(animation),
-                    child: Column(
-                      children: <Widget>[
-                        AnimatedBuilder(
-                          animation: animation,
-                          builder: (context, child) {
-                            return SizedBox(
-                              height:
-                                  animation.value.clamp(0.0, double.infinity) *
-                                          (windowPadding.top - 20) +
-                                      20,
-                            );
-                          },
-                        ),
-                        Container(
-                          constraints: BoxConstraints(
-                            minHeight: MediaQuery.of(context).size.height -
-                                windowPadding.top -
-                                windowPadding.bottom,
-                          ),
-                          padding: const EdgeInsets.all(32),
-                          child: ListOfOrders(),
-                        ),
-                        SizedBox(
-                          height: windowPadding.bottom,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                //PaymentScreen(),
-              ],
-            );
-          },
+            ),
+          ],
         );
       },
     );
@@ -248,11 +246,10 @@ class ListOfOrders extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<ShoppingCartNotifier, Map<int, Map<DishWithOptions, int>>>(
+    return Selector<ShoppingCartNotifier,
+        Map<StallId, Map<DishWithOptions, int>>>(
       selector: (context, cart) => cart.orders,
       builder: (context, orders, child) {
-        final stallList =
-            Provider.of<List<StallDetails>>(context, listen: false);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -281,11 +278,17 @@ class ListOfOrders extends StatelessWidget {
                       children: <Widget>[
                         Container(
                           padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
-                          child: Text(
-                              stallList.firstWhere((stall) {
-                                return stall.id == stallId;
-                              }).name,
-                              style: Theme.of(context).textTheme.display2),
+                          child: Selector<StallDetailsMap, String>(
+                            selector: (context, stallDetailsMap) {
+                              return stallDetailsMap.value[stallId].name;
+                            },
+                            builder: (context, name, child) {
+                              return Text(
+                                name,
+                                style: Theme.of(context).textTheme.display2,
+                              );
+                            },
+                          ),
                         ),
                         for (var dish in orders[stallId].keys)
                           OrderDishRow(
@@ -359,7 +362,7 @@ class OrderDishRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20))),
             child: SizedBox(
               height: 80,
-              child: FirebaseImage(
+              child: CustomImage(
                 dish.dish.image,
                 fadeInDuration: null,
               ),
@@ -404,7 +407,7 @@ class OrderDishRow extends StatelessWidget {
 }
 
 class TotalCostWidget extends StatelessWidget {
-  final Map<int, Map<DishWithOptions, int>> orders;
+  final Map<StallId, Map<DishWithOptions, int>> orders;
   const TotalCostWidget({Key key, @required this.orders}) : super(key: key);
 
   @override
@@ -430,8 +433,8 @@ class TotalCostWidget extends StatelessWidget {
           Text(
             'Total Cost',
             style: Theme.of(context).textTheme.subtitle.copyWith(
-              fontSize: 15,
-            ),
+                  fontSize: 15,
+                ),
           ),
           const SizedBox(
             height: 4,

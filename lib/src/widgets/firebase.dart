@@ -1,123 +1,208 @@
 import '../../library.dart';
+import 'dart:ui' as ui;
 
 enum FirebaseConnectionState { connected, disconnected }
 
-// Custom FirebaseImage widget that can be reused for all images in the app
-class FirebaseImage extends StatefulWidget {
+/// An image widget for firebase that can be reused for all images in the app
+class CustomImage extends StatefulWidget {
+  /// Path of the image in Firebase Storage
   final String path;
   final Uint8List fallbackMemoryImage;
-  final Duration timeout;
+  /// The default is the theme's divider color
+  final Color placeholderColor;
   final BoxFit fit;
+  final double width;
+  final double height;
   final Duration fadeInDuration;
-  FirebaseImage(
+  final void Function(double aspectRatio) onLoad;
+  CustomImage(
     this.path, {
     Key key,
     this.fallbackMemoryImage,
-    this.timeout: const Duration(seconds: 10),
+    this.placeholderColor,
     this.fit: BoxFit.cover,
-    this.fadeInDuration: const Duration(milliseconds: 400),
+    this.width,
+    this.height,
+    this.fadeInDuration: const Duration(milliseconds: 200),
+    this.onLoad,
   }) : super(key: key);
 
-  _FirebaseImageState createState() => _FirebaseImageState();
+  @override
+  _CustomImageState createState() => _CustomImageState();
 }
 
-class _FirebaseImageState extends State<FirebaseImage>
-    with AutomaticKeepAliveClientMixin {
-  MemoryImage _imageProvider;
-  bool didUpdate = false;
+class _CustomImageState extends State<CustomImage> {
+  bool _init = false;
+  ImageProvider _imageProvider;
+  String _dirPath;
+  bool _isFadingIn;
 
-  void fetchImageFromStorage(Map<String, Uint8List> imageMap) async {
-    final String filePath = widget.path.replaceAll('/', '-');
-    final Directory dir = await getApplicationDocumentsDirectory();
-    final File file = File('${dir.path}/$filePath');
-    if (file.existsSync()) {
-      Uint8List bytes = file.readAsBytesSync();
-      setState(() => _imageProvider ??= MemoryImage(bytes));
-      imageMap.addAll({widget.path: bytes});
-    }
-  }
-
-  void fetchImageFromFirebase(Map<String, Uint8List> imageMap) async {
-    try {
-      Uint8List bytes = await FirebaseStorage.instance
-          .ref()
-          .child(widget.path)
-          .getData(10 * 1024 * 1024)
-          .timeout(widget.timeout);
-      setState(() => _imageProvider ??= MemoryImage(bytes));
-      imageMap.addAll({widget.path: bytes});
-      final Directory dir = await getApplicationDocumentsDirectory();
-      final String filePath = widget.path.replaceAll('/', '-');
-      final File file = File('${dir.path}/$filePath');
-      file.writeAsBytes(bytes);
-    } catch (e) {
-      setState(() => _imageProvider ??=
-          MemoryImage(widget.fallbackMemoryImage ?? kTransparentImage));
-    }
+  void _resolveImage([Duration _]) {
+    _imageProvider.resolve(ImageConfiguration()).addListener(
+      ImageStreamListener((image, synchronousCall) {
+        if (mounted) widget.onLoad(image.image.width / image.image.height);
+      }),
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    Map<String, Uint8List> imageMap =
-        Provider.of<Map<String, Uint8List>>(context);
-    if (widget.path == null) {
-      _imageProvider =
-          MemoryImage(widget.fallbackMemoryImage ?? kTransparentImage);
-    } else if (imageMap.containsKey(widget.path)) { // If the provider already has the image ossciated with
-      _imageProvider = MemoryImage(imageMap[widget.path]);
-    } else {
-      // These 2 functions below runs in parallel
-      fetchImageFromStorage(imageMap);
-      fetchImageFromFirebase(imageMap);
+    if (!_init) {
+      _dirPath = Provider.of<Directory>(context)?.path;
+      if (_dirPath == null) return;
+      final filePath = widget.path.replaceAll('/', '-');
+      final file = File('$_dirPath/$filePath');
+      _isFadingIn =
+          (widget?.fadeInDuration ?? Duration.zero) != Duration.zero;
+      _imageProvider = FirebaseImage(
+        file: file,
+        path: widget.path,
+      );
+      if (widget.onLoad != null) {
+        WidgetsBinding.instance.addPostFrameCallback(_resolveImage);
+      }
+      _init = true;
     }
   }
 
   @override
-  void didUpdateWidget(oldWidget) {
+  void didUpdateWidget(CustomImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.path != widget.path) {
-      _imageProvider = null;
-      if (widget.path == null) {
-        _imageProvider =
-            MemoryImage(widget.fallbackMemoryImage ?? kTransparentImage);
-      } else {
-        didUpdate = true;
+      final filePath = widget.path.replaceAll('/', '-');
+      final file = File('$_dirPath/$filePath');
+      _isFadingIn =
+          (widget?.fadeInDuration ?? Duration.zero) != Duration.zero;
+      _imageProvider = FirebaseImage(
+        file: file,
+        path: widget.path,
+      );
+      if (widget.onLoad != null) {
+        WidgetsBinding.instance.addPostFrameCallback(_resolveImage);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (didUpdate) {
-      Map<String, Uint8List> imageMap =
-          Provider.of<Map<String, Uint8List>>(context);
-      if (imageMap.containsKey(widget.path)) {
-        _imageProvider = MemoryImage(imageMap[widget.path]);
-      } else {
-        fetchImageFromStorage(imageMap);
-        fetchImageFromFirebase(imageMap);
-      }
-      didUpdate = false;
-    }
-    super.build(context);
-    return _imageProvider == null
-        ? SizedBox()
-        : widget.fadeInDuration == null ||
-                widget.fadeInDuration == Duration.zero
-            ? Image(
-                gaplessPlayback: true,
-                image: _imageProvider,
-                fit: widget.fit,
-              )
-            : FadeInImage(
-                fadeInDuration: widget.fadeInDuration,
-                placeholder: MemoryImage(kTransparentImage),
-                image: _imageProvider,
-                fit: widget.fit,
-              );
+    return Container(
+      color: widget.placeholderColor,
+      width: widget.width,
+      height: widget.height,
+      child: _dirPath == null
+          ? null
+          : _isFadingIn
+              ? FadeInImage(
+                  fadeInDuration: widget.fadeInDuration,
+                  placeholder: MemoryImage(kTransparentImage),
+                  image: _imageProvider,
+                  width: widget.width,
+                  height: widget.height,
+                  fit: widget.fit,
+                )
+              : Image(
+                  gaplessPlayback: true,
+                  image: _imageProvider,
+                  width: widget.width,
+                  height: widget.height,
+                  fit: widget.fit,
+                ),
+    );
+  }
+}
+
+class FirebaseImage extends ImageProvider<FirebaseImage> {
+  const FirebaseImage({
+    @required this.file,
+    @required this.path,
+    this.scale = 1.0,
+    this.debug = false,
+  })  : assert(file != null || path != null),
+        assert(scale != null);
+
+  final File file;
+  final String path;
+  final double scale;
+  final bool debug;
+
+  @override
+  Future<FirebaseImage> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<FirebaseImage>(this);
   }
 
   @override
-  bool get wantKeepAlive => true;
+  ImageStreamCompleter load(FirebaseImage key) {
+    return MultiFrameImageStreamCompleter(
+        codec: _loadAsync(key),
+        scale: key.scale,
+        informationCollector: () sync* {
+          yield ErrorDescription('Image provider: $this');
+          yield ErrorDescription('File path: ${file?.path}');
+          yield ErrorDescription('Firebase path: $path');
+        });
+  }
+
+  Future<ui.Codec> _loadAsync(FirebaseImage key) async {
+    assert(key == this);
+
+    Uint8List bytes;
+
+    // Reads from the local file.
+    if (file != null && _ifFileExistsLocally()) {
+      bytes = await _readFromFile();
+    }
+
+    // Reads from the network and saves it to the local file.
+    else if (path != null && path.isNotEmpty) {
+      bytes = await _downloadFromFirebaseAndSaveToFile();
+    }
+
+    // Empty file.
+    if (bytes?.lengthInBytes == 0) bytes = null;
+
+    return PaintingBinding.instance.instantiateImageCodec(bytes);
+  }
+
+  bool _ifFileExistsLocally() => file.existsSync();
+
+  Future<Uint8List> _readFromFile() async {
+    if (debug) print("Reading image file: ${file?.path}");
+    return await file.readAsBytes();
+  }
+
+  static final _firebaseStorage = FirebaseStorage.instance;
+
+  Future<Uint8List> _downloadFromFirebaseAndSaveToFile() async {
+    assert(path != null && path.isNotEmpty);
+    if (debug) print("Fetching image from Firebase: $path");
+
+    final bytes = await _firebaseStorage.ref().child(path).getData(10 << 20);
+    if (bytes.lengthInBytes == 0) {
+      throw Exception('Firebase Image is an empty file!');
+    }
+    if (file != null) saveImageToFile(bytes);
+
+    return bytes;
+  }
+
+  void saveImageToFile(Uint8List bytes) async {
+    if (debug) print("Saving image to file: ${file?.path}");
+    file.writeAsBytes(bytes, flush: true);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other.runtimeType != runtimeType) return false;
+    final FirebaseImage typedOther = other;
+    return path == typedOther.path &&
+        file?.path == typedOther.file?.path &&
+        scale == typedOther.scale;
+  }
+
+  @override
+  int get hashCode => hashValues(path, file?.path, scale);
+
+  @override
+  String toString() => '$runtimeType("${file?.path}", "$path", scale: $scale)';
 }

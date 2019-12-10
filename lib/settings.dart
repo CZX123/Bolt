@@ -25,9 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SwitchListTile(
             title: Text('Dark Mode'),
-            value: themeNotifier.isDarkMode,
+            value: themeNotifier.isDark,
             onChanged: (value) {
-              themeNotifier.isDarkMode = value;
+              themeNotifier.isDark = value;
             },
           ),
           Divider(),

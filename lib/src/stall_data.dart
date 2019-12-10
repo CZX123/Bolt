@@ -2,28 +2,133 @@ import '../library.dart';
 
 // TODO: Better error handling of stall data should there be missing information
 
+bool mapEquals<A, B>(Map<A, B> a, Map<A, B> b) {
+  return a?.length == b?.length &&
+      (a?.keys?.every((key) => a[key] == b[key]) ?? true);
+}
+
+/// A [ChangeNotifier] with a list of stall IDs as its value
+class StallIdList extends ChangeNotifier
+    implements ValueListenable<List<StallId>> {
+
+  @override
+  List<StallId> get value => _value;
+  List<StallId> _value;
+  set value(List<StallId> newValue) {
+    newValue.sort();
+    if (listEquals(_value, newValue)) return;
+    _value = newValue;
+    notifyListeners();
+  }
+
+  @override
+  String toString() => '$runtimeType($value)';
+
+  @override
+  operator ==(Object other) {
+    return identical(this, other) ||
+        other is StallIdList && listEquals(value, other.value);
+  }
+
+  @override
+  int get hashCode => hashList(value);
+}
+
+/// A class that contains the stall id, which is an [int]
+class StallId implements Comparable {
+  final int value;
+  const StallId(this.value);
+
+  @override
+  operator ==(Object other) {
+    return identical(this, other) || other is StallId && value == other.value;
+  }
+
+  @override
+  int get hashCode => value.hashCode;
+
+  @override
+  int compareTo(other) {
+    if (other is StallId) {
+      return value.compareTo(other.value);
+    }
+    throw Exception('Cannot compare $runtimeType with ${other.runtimeType}');
+  }
+
+  @override
+  String toString() {
+    return value.toString();
+  }
+}
+
+class StallDetailsMap {
+  final Map<StallId, StallDetails> value;
+  const StallDetailsMap(this.value);
+
+  @override
+  operator ==(Object other) {
+    return identical(this, other) ||
+        other is StallDetailsMap && mapEquals(value, other.value);
+  }
+
+  @override
+  int get hashCode => hashList(value.values);
+}
+
 class StallDetails {
-  final int id;
+  final StallId id;
   final String name;
   final String image;
   const StallDetails({this.id, this.name, this.image});
-  factory StallDetails.fromJson(String stallId, dynamic parsedJson) {
+
+  factory StallDetails.fromJson(StallId id, dynamic parsedJson) {
     return StallDetails(
-      id: int.parse(stallId),
+      id: id,
       name: parsedJson['name'],
       image: parsedJson['image'],
     );
   }
+
+  /// Returns whether all fields are non-null
+  bool get isValid {
+    return id != null && name != null && image != null;
+  }
+
+  @override
+  operator ==(Object other) {
+    return identical(this, other) ||
+        other is StallDetails &&
+            id == other.id &&
+            name == other.name &&
+            image == other.image;
+  }
+
+  @override
+  int get hashCode => hashValues(id, name, image);
+}
+
+class StallMenuMap {
+  final Map<StallId, StallMenu> value;
+  const StallMenuMap(this.value);
+
+  @override
+  operator ==(Object other) {
+    return identical(this, other) ||
+        other is StallMenuMap && mapEquals(value, other.value);
+  }
+
+  @override
+  int get hashCode => hashList(value.values);
 }
 
 class StallMenu {
-  final int id;
+  final StallId id;
   final bool isOpen;
   final bool splitIntoCategories;
   final List<Dish> menu;
   const StallMenu({this.id, this.isOpen, this.splitIntoCategories, this.menu});
 
-  factory StallMenu.fromJson(String stallId, dynamic parsedJson) {
+  factory StallMenu.fromJson(StallId stallId, dynamic parsedJson) {
     List<Dish> _menu = [];
     Map<String, dynamic>.from(parsedJson['menu']).forEach((cat, value) {
       Map map;
@@ -39,7 +144,7 @@ class StallMenu {
     });
     _menu.sort((a, b) => a.id.compareTo(b.id));
     return StallMenu(
-      id: int.parse(stallId),
+      id: stallId,
       isOpen: parsedJson['isOpen'],
       splitIntoCategories: parsedJson['splitIntoCategories'],
       menu: _menu,

@@ -8,8 +8,8 @@ class ShoppingCartNotifier extends ChangeNotifier {
   // List<Order> _orders = [];
   // List<Order> get orders => _orders;
 
-  Map<int, Map<DishWithOptions, int>> _orders = {};
-  Map<int, Map<DishWithOptions, int>> get orders => _orders;
+  Map<StallId, Map<DishWithOptions, int>> _orders = {};
+  Map<StallId, Map<DishWithOptions, int>> get orders => _orders;
 
   List<String> _orderThumbnails = [];
   List<String> get orderThumbnails => _orderThumbnails;
@@ -19,10 +19,14 @@ class ShoppingCartNotifier extends ChangeNotifier {
       return SizeTransition(
         axis: Axis.horizontal,
         sizeFactor: CurvedAnimation(
-            curve: Curves.fastOutSlowIn.flipped, parent: animation),
+          curve: Curves.fastOutSlowIn.flipped,
+          parent: animation,
+        ),
         child: ScaleTransition(
           scale: CurvedAnimation(
-              curve: Curves.fastOutSlowIn.flipped, parent: animation),
+            curve: Curves.fastOutSlowIn.flipped,
+            parent: animation,
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
             child: ClipPath(
@@ -33,7 +37,7 @@ class ShoppingCartNotifier extends ChangeNotifier {
               ),
               child: SizedBox(
                 height: 48,
-                child: FirebaseImage(
+                child: CustomImage(
                   image,
                   fadeInDuration: null,
                   fallbackMemoryImage: kErrorImage,
@@ -46,7 +50,11 @@ class ShoppingCartNotifier extends ChangeNotifier {
     };
   }
 
-  void addDish(int stallId, DishWithOptions dishWithOptions, [int count = 1]) {
+  void addDish(
+    StallId stallId,
+    DishWithOptions dishWithOptions, [
+    int count = 1,
+  ]) {
     if (_orders.containsKey(stallId)) {
       if (_orders[stallId].containsKey(dishWithOptions)) {
         _orders[stallId][dishWithOptions] += count;
@@ -111,7 +119,7 @@ class ShoppingCartNotifier extends ChangeNotifier {
   }
 
   void editDish(
-    int stallId,
+    StallId stallId,
     DishWithOptions dishWithOptions,
     int newQuantity,
   ) {
@@ -127,7 +135,7 @@ class ShoppingCartNotifier extends ChangeNotifier {
 
   // By default only subtract one dish
   void removeDish(
-    int stallId,
+    StallId stallId,
     DishWithOptions dishWithOptions, [
     bool removeEntirely = false,
   ]) {
