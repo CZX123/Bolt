@@ -20,7 +20,6 @@ class CustomAnimatedSwitcher extends StatelessWidget {
         ...previousChildren,
         if (currentChild != null) currentChild,
       ],
-      alignment: Alignment.center,
     );
   }
 

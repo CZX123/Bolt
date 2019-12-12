@@ -28,7 +28,7 @@ class Stall extends StatelessWidget {
             },
           ),
           const SizedBox(
-            height: 80,
+            height: 64,
           ),
           Selector<StallMenuMap, StallMenu>(
             selector: (context, stallMenuMap) {
@@ -37,9 +37,9 @@ class Stall extends StatelessWidget {
             builder: (context, stallMenu, child) {
               // TODO: Update each dish within the stall menu individually
               return Padding(
-                padding: EdgeInsets.fromLTRB(0, 8, 0, 128),
+                padding:
+                    EdgeInsets.fromLTRB(8, 8, 8, 16 + windowPadding.bottom),
                 child: Wrap(
-                  spacing: 8.0,
                   children: <Widget>[
                     for (var dish in stallMenu.menu)
                       MenuGridItem(
@@ -48,6 +48,16 @@ class Stall extends StatelessWidget {
                       ),
                   ],
                 ),
+              );
+            },
+          ),
+          ValueListenableBuilder(
+            valueListenable:
+                Provider.of<BottomSheetController>(context, listen: false)
+                    .altAnimation,
+            builder: (context, value, child) {
+              return SizedBox(
+                height: value < 0 ? 0 : 66.0 + 12,
               );
             },
           ),
@@ -111,7 +121,8 @@ class _StallImageState extends State<StallImage> {
         builder: (context, child) {
           final offset = widget.pageController.offset;
           final width = MediaQuery.of(context).size.width;
-          final imageOffset = (offset / width - widget.index).clamp(-1.0, 1.0) / 2;
+          final imageOffset =
+              (offset / width - widget.index).clamp(-1.0, 1.0) / 2;
           bool clipping = true;
           double scale = 1;
           Alignment alignment = Alignment.centerLeft;
@@ -161,7 +172,7 @@ class _StallImageState extends State<StallImage> {
   }
 }
 
-class MenuGridItem extends StatelessWidget {
+class MenuGridItem extends StatefulWidget {
   final StallId stallId;
   final Dish dish;
   const MenuGridItem({
@@ -169,26 +180,93 @@ class MenuGridItem extends StatelessWidget {
     @required this.stallId,
     @required this.dish,
   }) : super(key: key);
+
+  @override
+  _MenuGridItemState createState() => _MenuGridItemState();
+}
+
+class _MenuGridItemState extends State<MenuGridItem> {
+  /// Whether the main button is pressed, to correctly apply a shadow onto the button
+  final _isPressed = ValueNotifier(false);
+
+  /// Whether the remove button is pressed
+  final _removeIsPressed = ValueNotifier(false);
+
+  /// The default ordered dish is the dish with no options enabled
+  OrderedDish _defaultOrderedDish;
+
+  final _gradientColors = [
+    Colors.black.withOpacity(1),
+    Colors.black.withOpacity(.917),
+    Colors.black.withOpacity(.834),
+    Colors.black.withOpacity(.753),
+    Colors.black.withOpacity(.672),
+    Colors.black.withOpacity(.591),
+    Colors.black.withOpacity(.511),
+    Colors.black.withOpacity(.433),
+    Colors.black.withOpacity(.357),
+    Colors.black.withOpacity(.283),
+    Colors.black.withOpacity(.213),
+    Colors.black.withOpacity(.147),
+    Colors.black.withOpacity(.089),
+    Colors.black.withOpacity(.042),
+    Colors.black.withOpacity(.011),
+    Colors.transparent,
+  ];
+
+  final _gradientStops = [
+    0.0,
+    0.053,
+    0.106,
+    0.159,
+    0.213,
+    0.268,
+    0.325,
+    0.384,
+    0.445,
+    0.509,
+    0.577,
+    0.65,
+    0.729,
+    0.814,
+    0.906,
+    1.0,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _defaultOrderedDish = OrderedDish(
+      dish: widget.dish,
+      enabledOptions: [],
+    );
+  }
+
+  @override
+  void dispose() {
+    _isPressed.dispose();
+    _removeIsPressed.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cart = Provider.of<CartModel>(context, listen: false);
     double screenWidth = MediaQuery.of(context).size.width;
-    double cardWidth = (screenWidth - 8.0 * 3) / 2;
-    final shadowNotifier = ValueNotifier(0.0);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        vertical: 6.0,
-      ),
-      child: Column(
-        children: <Widget>[
-          Stack(
-            fit: StackFit.passthrough,
-            children: <Widget>[
-              ValueListenableBuilder(
-                valueListenable: shadowNotifier,
+    double cardWidth = (screenWidth - 16.0 * 3) / 2;
+    return Column(
+      children: <Widget>[
+        Stack(
+          overflow: Overflow.visible,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _isPressed,
                 builder: (context, value, child) {
                   return Material(
                     color: Theme.of(context).dividerColor,
-                    elevation: value,
+                    elevation: value ? 8 : 0,
                     shape: ContinuousRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -196,8 +274,9 @@ class MenuGridItem extends StatelessWidget {
                   );
                 },
                 child: Hero(
-                  tag: '$stallId ${dish.id}',
-                  createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
+                  tag: '${widget.stallId} ${widget.dish.id}',
+                  createRectTween: (a, b) =>
+                      MaterialRectCenterArcTween(begin: a, end: b),
                   child: ClipPath(
                     clipper: ShapeBorderClipper(
                       shape: ContinuousRectangleBorder(
@@ -208,7 +287,7 @@ class MenuGridItem extends StatelessWidget {
                       height: cardWidth,
                       width: cardWidth,
                       child: CustomImage(
-                        dish.image,
+                        widget.dish.image,
                         fallbackMemoryImage: kErrorImage,
                         fadeInDuration: const Duration(milliseconds: 300),
                       ),
@@ -216,85 +295,185 @@ class MenuGridItem extends StatelessWidget {
                   ),
                 ),
               ),
-              Material(
-                type: MaterialType.transparency,
-                shape: ContinuousRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () {
-                    final orderSheetController = Provider.of<BottomSheetController>(context);
-                    // Animate order sheet if it is hidden
-                    if (orderSheetController.altAnimation.value < 0) {
-                      orderSheetController.animateTo(BottomSheetPosition.end);
-                    }
-                    // Add the dish to cart
-                    Provider.of<CartModel>(context, listen: false)
-                        .addDish(
-                      stallId,
-                      DishWithOptions(
-                        dish: dish,
-                        enabledOptions: [
-                          ...dish.options,
-                        ],
+            ),
+            Positioned.fill(
+              top: 8,
+              right: 8,
+              left: 8,
+              child: Stack(
+                children: <Widget>[
+                  IgnorePointer(
+                    child: ClipPath(
+                      clipper: ShapeBorderClipper(
+                        shape: ContinuousRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
-                    );
-                    shadowNotifier.value = 0;
-                  },
-                  onTapDown: (_) {
-                    shadowNotifier.value = 8;
-                  },
-                  onTapCancel: () {
-                    shadowNotifier.value = 0;
-                  },
-                  onLongPress: () {
-                    // Provider.of<CartModel>(context, listen: false)
-                    //     .removeDish(
-                    //   stallId,
-                    //   DishWithOptions(
-                    //     dish: dish,
-                    //     enabledOptions: [
-                    //       ...dish.options,
-                    //     ],
-                    //   ),
-                    // );
-                    final windowPadding =
-                        Provider.of<EdgeInsets>(context, listen: false);
-                    Navigator.push(
-                      context,
-                      CrossFadePageRoute(
-                        builder: (context) {
-                          return Provider.value(
-                            value: windowPadding,
-                            child: DishEditScreen(
-                              tag: '$stallId ${dish.id}',
-                              dish: dish,
-                              stallId: stallId,
-                            ),
+                      child: Selector<CartModel, int>(
+                        selector: (context, cart) {
+                          if (!cart.orders.value.containsKey(widget.stallId))
+                            return null;
+                          final relevantDishes = cart
+                              .orders.value[widget.stallId].keys
+                              .where((orderedDish) {
+                            return orderedDish.dish == widget.dish;
+                          });
+                          if (relevantDishes.isEmpty) return null;
+                          return relevantDishes.map((orderedDish) {
+                            return cart.orders.value[widget.stallId]
+                                [orderedDish];
+                          }).reduce((a, b) => a + b);
+                        },
+                        builder: (context, quantity, child) {
+                          return Stack(
+                            children: <Widget>[
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                decoration: BoxDecoration(
+                                  gradient: quantity != null
+                                      ? LinearGradient(
+                                          begin: Alignment.bottomLeft,
+                                          end: Alignment.topRight,
+                                          colors: _gradientColors,
+                                          stops: _gradientStops
+                                              .map((i) => i / 3)
+                                              .toList(),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                              Positioned(
+                                left: 8,
+                                bottom: 8,
+                                child: CustomAnimatedSwitcher(
+                                  child: quantity != null
+                                      ? Text(
+                                          '$quantity',
+                                          key: ValueKey(quantity),
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : SizedBox.shrink(),
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
-                    );
+                    ),
+                  ),
+                  Material(
+                    type: MaterialType.transparency,
+                    shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: () {
+                        cart.addDish(
+                          context: context,
+                          stallId: widget.stallId,
+                          orderedDish: _defaultOrderedDish,
+                        );
+                        _isPressed.value = false;
+                      },
+                      onTapDown: (_) {
+                        _isPressed.value = true;
+                      },
+                      onTapCancel: () {
+                        _isPressed.value = false;
+                      },
+                      onLongPress: () {
+                        _isPressed.value = false;
+                        final windowPadding =
+                            Provider.of<EdgeInsets>(context, listen: false);
+                        Navigator.push(
+                          context,
+                          CrossFadePageRoute(
+                            builder: (context) {
+                              return Provider.value(
+                                value: windowPadding,
+                                child: DishEditScreen(
+                                  tag: '${widget.stallId} ${widget.dish.id}',
+                                  dish: widget.dish,
+                                  stallId: widget.stallId,
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Selector<CartModel, OrderedDish>(
+              selector: (context, cart) {
+                if (!cart.orders.value.containsKey(widget.stallId)) return null;
+                return cart.orders.value[widget.stallId].keys.firstWhere(
+                  (orderedDish) {
+                    return orderedDish.dish == widget.dish;
                   },
-                  child: SizedBox(
-                    width: cardWidth,
-                    height: cardWidth,
+                  orElse: () {
+                    return null;
+                  },
+                );
+              },
+              builder: (context, orderedDish, child) {
+                return AnimatedScale(
+                  scale: orderedDish != null ? 1 : 0,
+                  opacity: orderedDish != null ? 1 : .5,
+                  child: GestureDetector(
+                    onTap: () {
+                      cart.removeDish(
+                        context: context,
+                        stallId: widget.stallId,
+                        orderedDish: orderedDish,
+                      );
+                      _removeIsPressed.value = false;
+                    },
+                    onTapDown: (_) => _removeIsPressed.value = true,
+                    onTapCancel: () => _removeIsPressed.value = false,
+                    child: child,
+                  ),
+                );
+              },
+              child: Material(
+                color: Colors.transparent,
+                child: Padding(
+                  padding: const EdgeInsets.all(1),
+                  child: ValueListenableBuilder<bool>(
+                    valueListenable: _removeIsPressed,
+                    builder: (context, value, child) {
+                      return AnimatedContainer(
+                        duration: Duration(milliseconds: value ? 100 : 300),
+                        decoration: BoxDecoration(
+                          color: value ? Colors.red[100] : Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: child,
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(2),
+                      child: Icon(Icons.remove, size: 18, color: Colors.white),
+                    ),
                   ),
                 ),
               ),
-            ],
-          ),
-          SizedBox(
-            height: 6.0,
-          ),
-          Text(dish.name),
-          Text(
-            '\$${dish.unitPrice.toStringAsFixed(2)}',
-            style: Theme.of(context).textTheme.subtitle,
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(widget.dish.name),
+        Text(
+          '\$${widget.dish.unitPrice.toStringAsFixed(2)}',
+          style: Theme.of(context).textTheme.subtitle,
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

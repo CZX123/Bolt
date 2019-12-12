@@ -118,12 +118,14 @@ class OrderPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool rebuildToggle = false;
     final windowPadding = Provider.of<EdgeInsets>(context);
-    final thumbnails = Provider.of<CartModel>(
+    final cart = Provider.of<CartModel>(
       context,
       listen: false,
-    ).orderThumbnails;
-    int previousLength = max(thumbnails.length, 1);
+    );
+    int previousLength = max(cart.orderThumbnails.length, 1);
+    List<String> previousThumbnails = [];
     final orderSheetController = Provider.of<BottomSheetController>(context);
     return ValueListenableBuilder(
       valueListenable: orderSheetController.altAnimation,
@@ -168,12 +170,19 @@ class OrderPreview extends StatelessWidget {
                 ).animate(orderSheetController.altAnimation),
                 child: SizedBox(
                   height: 66,
-                  child: Selector<CartModel, int>(
+                  child: Selector<CartModel, bool>(
                     selector: (context, cart) {
-                      return min(cart.orderThumbnails.length, 5);
+                      if (cart.orderThumbnails.length < 6 &&
+                          !listEquals(
+                              previousThumbnails, cart.orderThumbnails)) {
+                        rebuildToggle = !rebuildToggle;
+                        previousThumbnails = List.from(cart.orderThumbnails);
+                      }
+                      return rebuildToggle;
                     },
-                    builder: (context, length, child) {
-                      final diff = length - previousLength;
+                    builder: (context, value, child) {
+                      final length = min(cart.orderThumbnails.length, 5);
+                      final diff = max(length, 1) - previousLength;
                       previousLength = max(length, 1);
                       return AnimatedSwitcher(
                         transitionBuilder: (child, animation) {
@@ -181,13 +190,13 @@ class OrderPreview extends StatelessWidget {
                         },
                         duration: const Duration(milliseconds: 280),
                         child: Row(
-                          key: ValueKey(length),
+                          key: ValueKey(value),
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             for (int i = 0; i < length; i++)
                               OrderPreviewThumbnail(
                                 last: i == length - 1,
-                                image: thumbnails[i],
+                                image: cart.orderThumbnails[i],
                               ),
                           ],
                         ),
@@ -341,7 +350,7 @@ class ListOfOrders extends StatelessWidget {
 class OrderDishRow extends StatelessWidget {
   final StallId stallId;
   final int quantity;
-  final DishWithOptions dish;
+  final OrderedDish dish;
   const OrderDishRow({
     Key key,
     @required this.stallId,

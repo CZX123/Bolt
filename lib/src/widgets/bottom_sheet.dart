@@ -45,6 +45,9 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
   Drag _scrollDrag;
   ScrollHoldController _scrollHold;
 
+  /// Whether bottom sheet is at or going to be at [BottomSheetPosition.hidden]
+  bool _isHidden = false;
+
   /// Whether the inner scroll view within the bottom sheet is scrolling
   bool _isScrolling = false;
   LocalHistoryEntry _localHistoryEntry;
@@ -75,6 +78,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
         break;
       case BottomSheetPosition.hidden:
         _animationController.value = 1;
+        _isHidden = true;
         break;
     }
     // range = widget.controller.end - widget.controller.start;
@@ -104,12 +108,14 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
 
   void _animateTo(BottomSheetPosition position) {
     if (position == BottomSheetPosition.hidden) {
+      _isHidden = true;
       _animationController.animateTo(
         1,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInCubic,
       );
     } else {
+      _isHidden = false;
       final simulation = ScrollSpringSimulation(
         spring,
         _animationController.value,
@@ -157,6 +163,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
 
   // User has touched the screen and may begin to drag
   void dragDown(DragDownDetails details) {
+    if (_isHidden) return;
     final controller = widget.controller.activeScrollController;
 
     // This line here is to stop the bottom sheet from moving and hold it in place should the user tap on the bottom sheet again while it is shifting
@@ -176,6 +183,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
 
   // user has just started to drag
   void dragStart(DragStartDetails details) {
+    if (_isHidden) return;
     final controller = widget.controller.activeScrollController;
     // Check if the [SingleChildScrollView] is scrollable in the first place
     if (_isScrollable(controller) && _animationController.value == 0) {
@@ -186,6 +194,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
 
   // user is in the process of dragging
   void dragUpdate(DragUpdateDetails details) {
+    if (_isHidden) return;
     final controller = widget.controller.activeScrollController;
     // Scrolling the inner scroll view
     if (_isScrollable(controller) &&
@@ -223,6 +232,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
 
   // user has finished dragging
   void dragEnd(DragEndDetails details) {
+    if (_isHidden) return;
     double velocity = details.primaryVelocity;
     if (velocity == 0) {
       if (_isScrolling) {
@@ -369,12 +379,15 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       switch (widget.controller.initialPosition) {
         case BottomSheetPosition.start:
           _animationController.value = widget.controller.start;
+          _isHidden = false;
           break;
         case BottomSheetPosition.end:
           _animationController.value = widget.controller.end;
+          _isHidden = false;
           break;
         case BottomSheetPosition.hidden:
           _animationController.value = 1;
+          _isHidden = true;
           break;
       }
       // range = widget.controller.end - widget.controller.start;

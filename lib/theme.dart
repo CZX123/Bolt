@@ -75,37 +75,37 @@ final List<ThemeData> themeList = [
 TextTheme textTheme = const TextTheme(
   body1: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
   ),
   body2: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
   ),
   title: const TextStyle(
     height: 1.2,
   ),
   subtitle: const TextStyle(
     height: 1.2,
-    fontSize: 13.5,
+    fontSize: 13,
   ),
   button: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w700,
   ),
   display1: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w700,
   ),
   display2: const TextStyle(
     height: 1.2,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: FontWeight.w700,
   ),
   display3: const TextStyle(
     height: 1.2,
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: FontWeight.w700,
   ),
   display4: const TextStyle(

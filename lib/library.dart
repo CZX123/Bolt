@@ -27,6 +27,7 @@ export 'src/order.dart';
 export 'src/order_data.dart';
 export 'src/images/error_image.dart';
 export 'src/images/transparent_image.dart';
+export 'src/widgets/animated_scale.dart';
 export 'src/widgets/bottom_sheet.dart';
 export 'src/widgets/cross_fade_page_route.dart';
 export 'src/widgets/custom_dialog.dart';
