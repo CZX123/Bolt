@@ -9,7 +9,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    ThemeNotifier themeNotifier = Provider.of<ThemeNotifier>(context);
+    ThemeModel themeModel = Provider.of<ThemeModel>(context);
     EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
     return SingleChildScrollView(
       child: Column(
@@ -25,9 +25,9 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           SwitchListTile(
             title: Text('Dark Mode'),
-            value: themeNotifier.isDarkMode,
+            value: themeModel.isDark,
             onChanged: (value) {
-              themeNotifier.isDarkMode = value;
+              themeModel.isDark = value;
             },
           ),
           Divider(),

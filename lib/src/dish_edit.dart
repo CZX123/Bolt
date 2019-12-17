@@ -32,10 +32,13 @@ class QuantityDishOptions {
 }
 
 class DishEditScreen extends StatefulWidget {
-  final int stallId;
+  /// Required for the hero animation
+  final String tag;
+  final StallId stallId;
   final Dish dish;
   const DishEditScreen({
     Key key,
+    @required this.tag,
     @required this.stallId,
     @required this.dish,
   }) : super(key: key);
@@ -94,8 +97,8 @@ class _DishEditScreenState extends State<DishEditScreen> {
     if (!loaded) {
       loaded = true;
       final orders =
-          Provider.of<ShoppingCartNotifier>(context, listen: false).orders;
-      orders[widget.stallId]?.forEach((dish, quantity) {
+          Provider.of<CartModel>(context, listen: false).orders;
+      orders.value[widget.stallId]?.forEach((dish, quantity) {
         if (dish.dish == widget.dish) {
           dishes.add(QuantityDishOptions(
             quantity: quantity,
@@ -114,10 +117,6 @@ class _DishEditScreenState extends State<DishEditScreen> {
     // final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final topPadding = Provider.of<EdgeInsets>(context).top;
-    final stallList = Provider.of<List<StallDetails>>(context, listen: false);
-    final stallName = stallList.firstWhere((stall) {
-      return stall.id == widget.stallId;
-    }).name;
     return Scaffold(
       body: SingleChildScrollView(
         padding: EdgeInsets.all(32),
@@ -131,26 +130,38 @@ class _DishEditScreenState extends State<DishEditScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                ClipPath(
-                  clipper: ShapeBorderClipper(
-                      shape: ContinuousRectangleBorder(
-                          borderRadius: BorderRadius.circular(20))),
-                  child: SizedBox(
-                    height: 80,
-                    child: FirebaseImage(
-                      widget.dish.image,
-                      fadeInDuration: null,
+                Hero(
+                  tag: widget.tag,
+                  createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
+                  child: ClipPath(
+                    clipper: ShapeBorderClipper(
+                        shape: ContinuousRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    )),
+                    child: SizedBox(
+                      height: 80,
+                      child: CustomImage(
+                        widget.dish.image,
+                        fadeInDuration: null,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(
                   height: 16,
                 ),
-                Text(
-                  stallName,
-                  style: Theme.of(context).textTheme.display1.copyWith(
-                        color: Theme.of(context).hintColor,
-                      ),
+                Selector<StallDetailsMap, String>(
+                  selector: (context, stallDetailsMap) {
+                    return stallDetailsMap.value[widget.stallId].name;
+                  },
+                  builder: (context, name, child) {
+                    return Text(
+                      name,
+                      style: Theme.of(context).textTheme.display1.copyWith(
+                            color: Theme.of(context).hintColor,
+                          ),
+                    );
+                  },
                 ),
                 const SizedBox(
                   height: 8,
@@ -501,9 +512,14 @@ class _DishEditRowState extends State<DishEditRow> {
                                   const SizedBox(width: 3),
                                   Text(
                                     'Add Options',
-                                    style: Theme.of(context).textTheme.subtitle.copyWith(
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .subtitle
+                                        .copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface,
+                                        ),
                                   ),
                                   const SizedBox(width: 2),
                                 ],
@@ -573,7 +589,7 @@ class DishOptionDialog extends StatelessWidget {
             ),
             child: SizedBox(
               height: 80,
-              child: FirebaseImage(
+              child: CustomImage(
                 dish.dish.image,
                 fadeInDuration: null,
               ),

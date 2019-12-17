@@ -17,14 +17,9 @@ class CustomAnimatedSwitcher extends StatelessWidget {
   ) {
     return Stack(
       children: <Widget>[
-        ...previousChildren.map((child) {
-          return IgnorePointer(
-            child: child,
-          );
-        }).toList(),
+        ...previousChildren,
         if (currentChild != null) currentChild,
       ],
-      alignment: Alignment.center,
     );
   }
 

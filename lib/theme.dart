@@ -1,18 +1,17 @@
 import 'library.dart';
 
-class ThemeNotifier with ChangeNotifier {
-  ThemeNotifier();
+class ThemeModel with ChangeNotifier {
 
-  bool _isDarkMode = false;
-  set isDarkMode(bool value) {
-    _isDarkMode = value;
+  bool _isDark = false;
+  set isDark(bool value) {
+    _isDark = value;
     _currentThemeData = themeList[value ? 1 : 0];
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setBool('isDarkMode', value);
+      prefs.setBool('isDark', value);
     });
     notifyListeners();
   }
-  bool get isDarkMode => _isDarkMode;
+  bool get isDark => _isDark;
 
   ThemeData _currentThemeData = themeList[0];
   ThemeData get currentThemeData => _currentThemeData;
@@ -76,37 +75,37 @@ final List<ThemeData> themeList = [
 TextTheme textTheme = const TextTheme(
   body1: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
   ),
   body2: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
   ),
   title: const TextStyle(
     height: 1.2,
   ),
   subtitle: const TextStyle(
     height: 1.2,
-    fontSize: 13.5,
+    fontSize: 13,
   ),
   button: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w700,
   ),
   display1: const TextStyle(
     height: 1.2,
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: FontWeight.w700,
   ),
   display2: const TextStyle(
     height: 1.2,
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: FontWeight.w700,
   ),
   display3: const TextStyle(
     height: 1.2,
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: FontWeight.w700,
   ),
   display4: const TextStyle(

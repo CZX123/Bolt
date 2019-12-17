@@ -1,19 +1,14 @@
 import '../../library.dart';
 
-// Custom Tab Bar built specifically for PageViews
+/// Custom Tab Bar built specifically for PageViews
 class CustomTabBar extends StatefulWidget {
-  // All values actually listen to offsetNotifier
-  final ValueNotifier<double> offsetNotifier;
-  // PageController is only needed to animate to other pages when user clicks on another tab
   final PageController pageController;
-  // List of strings to display for the tabs
-  final List<String> tabs;
-  CustomTabBar(
-      {Key key,
-      @required this.pageController,
-      @required this.tabs,
-      @required this.offsetNotifier})
-      : super(key: key);
+  final List<StallId> stallIdList;
+  CustomTabBar({
+    Key key,
+    @required this.pageController,
+    @required this.stallIdList,
+  }) : super(key: key);
 
   _CustomTabBarState createState() => _CustomTabBarState();
 }
@@ -65,7 +60,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
 
   void updateScrollPosition() {
     double targetOffset =
-        getScrollPosition(widget.offsetNotifier.value / _windowWidth);
+        getScrollPosition(widget.pageController.offset / _windowWidth);
     if (targetOffset > _scrollController.position.maxScrollExtent)
       targetOffset = _scrollController.position.maxScrollExtent;
     final double currentOffset = _scrollController.offset;
@@ -110,7 +105,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
   @override
   void initState() {
     super.initState();
-    _tabKeys = [for (var _ in widget.tabs) GlobalKey()];
+    _tabKeys = [for (var _ in widget.stallIdList) GlobalKey()];
     WidgetsBinding.instance.addPostFrameCallback((duration) {
       setState(() {
         _tabKeys.forEach((key) {
@@ -119,7 +114,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
         updateValues();
       });
     });
-    widget.offsetNotifier.addListener(updateScrollPosition);
+    widget.pageController.addListener(updateScrollPosition);
   }
 
   @override
@@ -132,8 +127,8 @@ class _CustomTabBarState extends State<CustomTabBar> {
   @override
   void didUpdateWidget(CustomTabBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.tabs != widget.tabs) {
-      _tabKeys = [for (var _ in widget.tabs) GlobalKey()];
+    if (!listEquals(oldWidget.stallIdList, widget.stallIdList)) {
+      _tabKeys = [for (var _ in widget.stallIdList) GlobalKey()];
       _tabWidths = [];
       WidgetsBinding.instance.addPostFrameCallback((duration) {
         setState(() {
@@ -148,7 +143,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
 
   @override
   void dispose() {
-    widget.offsetNotifier.removeListener(updateScrollPosition);
+    widget.pageController.removeListener(updateScrollPosition);
     _scrollController.dispose();
     super.dispose();
   }
@@ -174,13 +169,15 @@ class _CustomTabBarState extends State<CustomTabBar> {
               if (_tabWidths.length > 0)
                 Align(
                   alignment: Alignment.bottomLeft,
-                  child: ValueListenableBuilder<double>(
-                    valueListenable: widget.offsetNotifier,
-                    builder: (context, value, child) {
-                      if (value.isNaN) return const SizedBox();
+                  child: AnimatedBuilder(
+                    animation: widget.pageController,
+                    builder: (context, child) {
+                      final offset = widget.pageController.offset;
                       return Transform.translate(
                         offset: Offset(
-                            getIndicatorPosition(value / _windowWidth), 0),
+                          getIndicatorPosition(offset / _windowWidth),
+                          0,
+                        ),
                         child: PhysicalShape(
                           color: Theme.of(context).colorScheme.onSurface,
                           clipper: ShapeBorderClipper(
@@ -191,7 +188,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
                           clipBehavior: Clip.antiAlias,
                           child: SizedBox(
                             height: 2,
-                            width: getIndicatorWidth(value / _windowWidth),
+                            width: getIndicatorWidth(offset / _windowWidth),
                           ),
                         ),
                       );
@@ -201,14 +198,23 @@ class _CustomTabBarState extends State<CustomTabBar> {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  for (var i = 0; i < widget.tabs.length; i++)
+                  for (var i = 0; i < widget.stallIdList.length; i++)
                     InkWell(
                       key: _tabKeys[i],
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         height: 56,
                         alignment: Alignment.center,
-                        child: Text(widget.tabs[i]),
+                        child: Selector<StallDetailsMap, String>(
+                          selector: (context, stallDetailsMap) {
+                            return stallDetailsMap
+                                .value[widget.stallIdList[i]].name;
+                          },
+                          builder: (context, name, child) {
+                            // TODO: If name changes also update tabWidth and positions
+                            return Text(name);
+                          },
+                        ),
                       ),
                       onTap: () {
                         isListening = false;
