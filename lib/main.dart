@@ -1,8 +1,21 @@
 import 'library.dart';
 
-void main() {
+LoginPage appAuth = new LoginPage();
+String _defaultPage = '/1';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
   // force app to be only in portrait mode, and upright
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool success = prefs.getBool('success') ?? false;
+
+  if (success == true) {
+    _defaultPage = '/2';
+  }
+
   runApp(BoltApp());
 }
 
@@ -53,7 +66,7 @@ class BoltApp extends StatelessWidget {
             return FirebaseDatabase.instance
                 .reference()
                 .child('stalls')
-                .onValue
+                .onValue 
                 .map<List<StallDetails>>((event) {
               if (event == null) return null;
               Map map;
@@ -108,11 +121,18 @@ class BoltApp extends StatelessWidget {
         ),
       ],
       child: Consumer<ThemeNotifier>(
-        builder: (context, themeNotifier, widget) {
+        builder: (context, themeNotifier, widget) {     
           return MaterialApp(
             title: 'Bolt',
             theme: themeNotifier.currentThemeData,
-            home: Home(),
+            //home: LoginPage(),
+            initialRoute: _defaultPage,
+            //onGenerateRoute: , look into
+            routes: {
+              '/1' : (context) => LoginPage(),
+              '/2' : (context) => Home(),
+            }
+            
           );
         },
       ),
