@@ -74,7 +74,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
       _previousOffset = targetOffset;
       _scrollController.animateTo(
         targetOffset,
-        duration: Duration(milliseconds: 100),
+        duration: 100.milliseconds,
         curve: Curves.ease,
       );
     } else {
@@ -220,13 +220,13 @@ class _CustomTabBarState extends State<CustomTabBar> {
                         isListening = false;
                         _scrollController.animateTo(
                           getScrollPosition(i.toDouble()),
-                          duration: Duration(milliseconds: 400),
+                          duration: 400.milliseconds,
                           curve: Curves.fastOutSlowIn,
                         );
                         widget.pageController
                             .animateToPage(
                           i,
-                          duration: Duration(milliseconds: 400),
+                          duration: 400.milliseconds,
                           curve: Curves.fastOutSlowIn,
                         )
                             .then((_) {

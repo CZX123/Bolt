@@ -46,7 +46,7 @@ class _OrderScreenState extends State<OrderScreen> {
                             windowPadding.top -
                             windowPadding.bottom,
                       ),
-                      padding: const EdgeInsets.fromLTRB(0, 32, 0, 32),
+                      padding: const EdgeInsets.symmetric(vertical: 24),
                       child: ListOfOrders(),
                     ),
                     SizedBox(
@@ -188,7 +188,7 @@ class OrderPreview extends StatelessWidget {
                         transitionBuilder: (child, animation) {
                           return transitionBuilder(diff, child, animation);
                         },
-                        duration: const Duration(milliseconds: 280),
+                        duration: 280.milliseconds,
                         child: Row(
                           key: ValueKey(value),
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -261,7 +261,7 @@ class OrderPreviewThumbnail extends StatelessWidget {
                 },
                 builder: (context, length, _) {
                   return CustomAnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
+                    duration: 200.milliseconds,
                     child: length > 5
                         ? Container(
                             key: ValueKey(length),
@@ -294,7 +294,7 @@ class ListOfOrders extends StatelessWidget {
           children: <Widget>[
             const SizedBox.shrink(),
             Padding(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 16),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
               child: Text(
                 orders.value.length == 0 ? 'No Orders' : 'Orders',
                 style: Theme.of(context).textTheme.display3,
@@ -315,7 +315,7 @@ class ListOfOrders extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
                         Container(
-                          padding: const EdgeInsets.fromLTRB(32, 16, 32, 8),
+                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
                           child: Selector<StallDetailsMap, String>(
                             selector: (context, stallDetailsMap) {
                               return stallDetailsMap.value[stallId].name;
@@ -328,11 +328,11 @@ class ListOfOrders extends StatelessWidget {
                             },
                           ),
                         ),
-                        for (var dish in orders.value[stallId].keys)
+                        for (var orderedDish in orders.value[stallId].keys)
                           OrderDishRow(
                             stallId: stallId,
-                            quantity: orders.value[stallId][dish],
-                            dish: dish,
+                            quantity: orders.value[stallId][orderedDish],
+                            orderedDish: orderedDish,
                           ),
                       ],
                     ),
@@ -350,12 +350,12 @@ class ListOfOrders extends StatelessWidget {
 class OrderDishRow extends StatelessWidget {
   final StallId stallId;
   final int quantity;
-  final OrderedDish dish;
+  final OrderedDish orderedDish;
   const OrderDishRow({
     Key key,
     @required this.stallId,
     @required this.quantity,
-    @required this.dish,
+    @required this.orderedDish,
   }) : super(key: key);
 
   List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
@@ -390,8 +390,8 @@ class OrderDishRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    num price = dish.dish.unitPrice;
-    dish.enabledOptions.forEach((option) {
+    num price = orderedDish.dish.unitPrice;
+    orderedDish.enabledOptions.forEach((option) {
       price += option.addCost;
     });
     price *= quantity;
@@ -399,38 +399,50 @@ class OrderDishRow extends StatelessWidget {
       type: MaterialType.transparency,
       child: InkWell(
         onTap: () {
-          final windowPadding = Provider.of<EdgeInsets>(context, listen: false);
+          final windowPadding = Provider.of<EdgeInsets>(context);
+          final bottomSheetController =
+              Provider.of<BottomSheetController>(context);
           Navigator.push(context, CrossFadePageRoute(
             builder: (_) {
-              return Provider.value(
-                value: windowPadding,
+              return MultiProvider(
+                providers: [
+                  Provider.value(
+                    value: windowPadding,
+                  ),
+                  ChangeNotifierProvider.value(
+                    value: bottomSheetController,
+                  ),
+                ],
                 child: DishEditScreen(
-                  tag: '$stallId ${dish.dish.id} fromOrderScreen',
-                  stallId: stallId,
-                  dish: dish.dish,
+                  tag: orderedDish.dish.toString() +
+                      ' ' +
+                      orderedDish.enabledOptions.join(),
+                  dish: orderedDish.dish,
                 ),
               );
             },
           ));
         },
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 8, 32, 8),
+          padding: const EdgeInsets.fromLTRB(16, 0, 24, 8),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Hero(
-                tag: '$stallId ${dish.dish.id} fromOrderScreen',
-                createRectTween: (a, b) =>
-                    MaterialRectCenterArcTween(begin: a, end: b),
-                child: ClipPath(
-                  clipper: ShapeBorderClipper(
-                      shape: ContinuousRectangleBorder(
-                          borderRadius: BorderRadius.circular(20))),
-                  child: SizedBox(
-                    height: 80,
-                    child: CustomImage(
-                      dish.dish.image,
-                      fadeInDuration: null,
+              SizedBox(
+                width: 96,
+                height: 88,
+                child: Hero(
+                  tag: orderedDish.dish.toString() +
+                      ' ' +
+                      orderedDish.enabledOptions.join(),
+                  createRectTween: (a, b) {
+                    return MaterialRectCenterArcTween(begin: a, end: b);
+                  },
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: DishImage(
+                      dish: orderedDish.dish,
+                      animation: AlwaysStoppedAnimation(1),
                     ),
                   ),
                 ),
@@ -438,34 +450,38 @@ class OrderDishRow extends StatelessWidget {
               const SizedBox(
                 width: 16,
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(quantity.toString() + '× ' + dish.dish.name),
-                  const SizedBox(
-                    height: 1,
-                  ),
-                  Text(
-                    '\$${price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.subtitle,
-                  ),
-                  const SizedBox(
-                    height: 4,
-                  ),
-                  if (dish.enabledOptions.isNotEmpty)
-                    SizedBox(
-                      width: width - 192.1,
-                      child: Wrap(
-                        spacing: 5,
-                        runSpacing: 3,
-                        children: dishOptions(context, dish.enabledOptions),
-                      ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(quantity.toString() + '× ' + orderedDish.dish.name),
+                    const SizedBox(
+                      height: 1,
                     ),
-                  const SizedBox(
-                    height: 2,
-                  ),
-                ],
+                    Text(
+                      '\$${price.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.subtitle,
+                    ),
+                    const SizedBox(
+                      height: 4,
+                    ),
+                    if (orderedDish.enabledOptions.isNotEmpty)
+                      SizedBox(
+                        width: width - 192.1,
+                        child: Wrap(
+                          spacing: 5,
+                          runSpacing: 3,
+                          children:
+                              dishOptions(context, orderedDish.enabledOptions),
+                        ),
+                      ),
+                    const SizedBox(
+                      height: 2,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -494,7 +510,7 @@ class TotalCostWidget extends StatelessWidget {
     });
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: 32,
+        horizontal: 24,
         vertical: 16,
       ),
       child: Column(

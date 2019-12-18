@@ -111,7 +111,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       _isHidden = true;
       _animationController.animateTo(
         1,
-        duration: const Duration(milliseconds: 300),
+        duration: 300.milliseconds,
         curve: Curves.easeInCubic,
       );
     } else {
@@ -266,11 +266,9 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
       if (simulationEndTime != double.infinity) {
         final endVelocity =
             scrollingSimulation.dx(simulationEndTime) / _windowHeight;
-        final durationInMicroseconds =
-            (simulationEndTime * Duration.microsecondsPerSecond).toInt();
         // Start a perfectly timed timer that will animate the bottom sheet the moment the inner scroll view reaches the top.
         _scrollTimer = Timer(
-          Duration(microseconds: durationInMicroseconds),
+          simulationEndTime.seconds,
           () {
             controller.jumpTo(0);
             Simulation simulation = BouncingScrollSimulation(
@@ -302,9 +300,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
         final simulationEndTime = (simulation as FrictionSimulation).timeAtX(0);
         double endVelocity = simulation.dx(simulationEndTime);
         _scrollTimer = Timer(
-          Duration(
-              microseconds:
-                  (simulationEndTime * Duration.microsecondsPerSecond).toInt()),
+          simulationEndTime.seconds,
           () {
             final controller = widget.controller.activeScrollController;
             _scrollDrag =

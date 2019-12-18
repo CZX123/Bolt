@@ -132,7 +132,7 @@ class FirebaseImage extends ImageProvider<FirebaseImage> {
   }
 
   @override
-  ImageStreamCompleter load(FirebaseImage key) {
+  ImageStreamCompleter load(FirebaseImage key, _) {
     return MultiFrameImageStreamCompleter(
         codec: _loadAsync(key),
         scale: key.scale,

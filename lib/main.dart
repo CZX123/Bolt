@@ -29,7 +29,7 @@ class _BoltAppState extends State<BoltApp> {
   void _initFirebaseConnectionSubscription() {
     // Wait for 3 seconds, then listen to the firebase connection stream
     // This is because the stream below returns [FirebaseConnectionState.disconnected] initially when app is loading, which is not ideal as it shows no internet momentarily even if app instantly loads
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(3.seconds, () {
       _firebaseConnectionSubscription = _firebaseDatabase
           .reference()
           .child('.info/connected')
@@ -283,7 +283,7 @@ class _HomeState extends State<Home> {
           child: SettingsPage(),
         ),
         body: AnimatedSwitcher(
-          duration: Duration(milliseconds: 400),
+          duration: 400.milliseconds,
           child: _stallIdList == null
               ? LoadingScreen()
               : ChangeNotifierProvider.value(
@@ -376,8 +376,7 @@ class _HomeState extends State<Home> {
                                             ),
                                           ),
                                         ),
-                                        duration:
-                                            const Duration(milliseconds: 200),
+                                        duration: 200.milliseconds,
                                         curve: Curves.ease,
                                         child: Material(
                                           type: MaterialType.transparency,

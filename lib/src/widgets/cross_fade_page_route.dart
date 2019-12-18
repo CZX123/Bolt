@@ -80,6 +80,20 @@ class CrossFadeTransition extends StatelessWidget {
     //   parent: animation,
     //   curve: Curves.fastOutSlowIn,
     // ));
+    final Animation<Offset> slideIn = Tween(
+      begin: Offset(0, .01),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      curve: Curves.fastOutSlowIn,
+      parent: animation,
+    ));
+    final Animation<Offset> slideOut = Tween(
+      begin: Offset.zero,
+      end: Offset(0, -.01),
+    ).animate(CurvedAnimation(
+      curve: Curves.fastOutSlowIn,
+      parent: secondaryAnimation,
+    ));
     final Animation<double> opacityIn = Tween(
       begin: -1.0,
       end: 1.0,
@@ -94,17 +108,23 @@ class CrossFadeTransition extends StatelessWidget {
           child: child,
         );
       },
-      child: FadeTransition(
-        opacity: opacityIn,
-        child: fadeOut
-            ? FadeTransition(
-                opacity: Tween(
-                  begin: 1.0,
-                  end: -1.0,
-                ).animate(secondaryAnimation),
-                child: child,
-              )
-            : child,
+      child: SlideTransition(
+        position: slideIn,
+        child: SlideTransition(
+          position: slideOut,
+          child: FadeTransition(
+            opacity: opacityIn,
+            child: fadeOut
+                ? FadeTransition(
+                    opacity: Tween(
+                      begin: 1.0,
+                      end: -1.0,
+                    ).animate(secondaryAnimation),
+                    child: child,
+                  )
+                : child,
+          ),
+        ),
       ),
     );
   }

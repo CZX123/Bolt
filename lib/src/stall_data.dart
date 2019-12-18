@@ -2,18 +2,18 @@ import '../library.dart';
 
 // TODO: Better error handling of stall data should there be missing information
 
-bool mapEquals<A, B>(Map<A, B> a, Map<A, B> b) {
-  return a?.length == b?.length &&
-      (a?.keys?.every((key) {
-            if (B is Map) return mapEquals(a[key] as Map, b[key] as Map);
-            return a[key] == b[key];
-          }) ??
-          true);
-}
+// bool mapEquals<A, B>(Map<A, B> a, Map<A, B> b) {
+//   return a?.length == b?.length &&
+//       (a?.keys?.every((key) {
+//             if (B is Map) return mapEquals(a[key] as Map, b[key] as Map);
+//             return a[key] == b[key];
+//           }) ??
+//           true);
+// }
 
 /// A [ChangeNotifier] with a list of stall IDs as its value
-class StallIdList extends ChangeNotifier
-    implements ValueListenable<List<StallId>> {
+class StallIdList extends ChangeNotifier implements ValueListenable<List<StallId>> {
+
   @override
   List<StallId> get value => _value;
   List<StallId> _value;
@@ -142,7 +142,7 @@ class StallMenu {
       }
       map.forEach((dishId, value) {
         if (value != null)
-          _menu.add(Dish.fromJson(cat, dishId.toString(), value));
+          _menu.add(Dish.fromJson(stallId, cat, dishId.toString(), value));
       });
     });
     _menu.sort((a, b) => a.id.compareTo(b.id));
@@ -175,16 +175,18 @@ class StallMenu {
 }
 
 class Dish {
-  final String category;
   final int id;
+  final StallId stallId;
+  final String category;
   final String name;
   final bool available;
   final num unitPrice;
   final String image;
   final List<DishOption> options;
   const Dish({
-    this.category,
     this.id,
+    this.stallId,
+    this.category,
     this.name,
     this.available,
     this.unitPrice,
@@ -192,7 +194,7 @@ class Dish {
     this.options,
   });
 
-  factory Dish.fromJson(String category, String dishId, dynamic parsedJson) {
+  factory Dish.fromJson(StallId stallId, String category, String dishId, dynamic parsedJson) {
     List<DishOption> options = [];
     Map map;
     if (parsedJson['options'] != null) {
@@ -207,8 +209,9 @@ class Dish {
         options.add(DishOption.fromJson(key.toString(), value));
     });
     return Dish(
-      category: category,
       id: int.parse(dishId),
+      stallId: stallId,
+      category: category,
       name: parsedJson['name'],
       available: parsedJson['available'],
       unitPrice: parsedJson['unitPrice'],
@@ -220,8 +223,9 @@ class Dish {
   operator ==(Object other) {
     return identical(this, other) ||
         other is Dish &&
-            category == other.category &&
             id == other.id &&
+            stallId == other.stallId &&
+            category == other.category &&
             name == other.name &&
             available == other.available &&
             unitPrice == other.unitPrice &&
@@ -232,14 +236,21 @@ class Dish {
   @override
   int get hashCode {
     return hashValues(
-      category,
       id,
+      stallId,
+      category,
       name,
       available,
       unitPrice,
       image,
       hashList(options),
     );
+  }
+
+  /// Used for hero transitions
+  @override
+  String toString() {
+    return 'Dish($stallId, $id)';
   }
 }
 
@@ -272,96 +283,10 @@ class DishOption {
   int get hashCode {
     return hashValues(id, name, addCost, colourCode);
   }
+
+  /// Used for hero transitions
+  @override
+  String toString() {
+    return 'DishOption($id)';
+  }
 }
-
-// // This is a custom class the only stores the image and name for the ProxyProvider in main.dart. This separate provider and class is needed since the provider for List<StallData> constantly updates on any change in the database, like the queue number. This separate class will check these updates, and this separate provider for stall names and images when only update when the names and images change, not when the queue changes. Stall name and image changes should be very rare, so this class here should rarely update.
-// class StallNameAndImage {
-//   String name;
-//   String image;
-//   StallNameAndImage({this.name, this.image});
-//   factory StallNameAndImage.fromStallData(StallData stallData) {
-//     return StallNameAndImage(
-//       name: stallData.name,
-//       image: stallData.image,
-//     );
-//   }
-// }
-
-// class StallData {
-//   final String name;
-//   final bool isOpen;
-//   final int queue;
-//   final List<MenuItem> menu;
-//   final String image;
-//   StallData({
-//     this.name,
-//     this.isOpen,
-//     this.menu,
-//     this.queue,
-//     this.image,
-//   });
-//   factory StallData.fromJson(String name, dynamic value) {
-//     if (value is String) return StallData();
-//     return StallData(
-//       name: name,
-//       isOpen: value['isOpen'],
-//       image: value['image'],
-//       menu: Map<String, dynamic>.from(value['menu'])
-//           .map((String name, dynamic value) {
-//             return MapEntry(MenuItem.fromJson(name, value), 0);
-//           })
-//           .keys
-//           .toList(),
-//       queue: value['queue'],
-//     );
-//   }
-
-//   // For debugging
-//   @override
-//   String toString() {
-//     return {
-//       'name': name,
-//       'isOpen': isOpen,
-//       'menu': menu,
-//       'queue': queue,
-//       'image': image,
-//     }.toString();
-//   }
-// }
-
-// class MenuItem {
-//   final bool available;
-//   final String name;
-//   final num price;
-//   final String image;
-//   MenuItem({
-//     this.available,
-//     this.name,
-//     this.price,
-//     this.image,
-//   });
-//   factory MenuItem.fromJson(String name, dynamic value) {
-//     return MenuItem(
-//       name: name,
-//       available: value['available'] ?? false,
-//       price: value['price'],
-//       image: value['image'],
-//     );
-//   }
-//   @override
-//   String toString() {
-//     return {
-//       'available': available,
-//       'name': name,
-//       'price': price,
-//       'image': image,
-//     }.toString();
-//   }
-// }
-
-// // TODO: implement this
-// class MenuOption {
-//   final String name;
-//   final double addPrice;
-//   MenuOption({this.name, this.addPrice});
-// }
