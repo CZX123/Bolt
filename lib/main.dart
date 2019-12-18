@@ -1,9 +1,20 @@
 import 'library.dart';
 import 'dart:ui' as ui;
 
-void main() {
-  // Force app to be only in portrait mode, and upright
+String _defaultPage = '/1';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // force app to be only in portrait mode, and upright
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool success = prefs.getBool('success') ?? false;
+
+  if (success == true) {
+    _defaultPage = '/2';
+  }
+
   runApp(BoltApp());
 }
 
@@ -168,10 +179,19 @@ class _BoltAppState extends State<BoltApp> {
             child: MaterialApp(
               title: 'Bolt',
               theme: themeModel.currentThemeData,
+              /*
               onGenerateRoute: (settings) {
                 return CrossFadePageRoute(
                   builder: (_) => Home(),
                 );
+              },
+              */
+              //home: LoginPage(),
+              initialRoute: _defaultPage,
+              //onGenerateRoute: , look into
+              routes: {
+                '/1' : (context) => LoginPage(),
+                '/2' : (context) => Home(),
               },
             ),
           );
