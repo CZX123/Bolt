@@ -37,6 +37,14 @@ class _SettingsPageState extends State<SettingsPage> {
               style: Theme.of(context).textTheme.display1,
             ),
           ),
+          ListTile(
+            title: Text(
+              'Log Out'
+            ),
+            onTap: () {
+              _showDialog();
+            }
+          ),
           SwitchListTile(
             title: Text('Random Toggle'),
             value: randomToggle,
@@ -50,4 +58,45 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
+
+  void _showDialog() {
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        
+        return AlertDialog(
+          title: new Text("Log Out"),
+          content: new Text("Are you sure?"),
+          actions: <Widget>[
+            new FlatButton(
+              child: new Text("NO"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            new FlatButton(
+              child: new Text("YES"),
+              onPressed: () {
+                Navigator.of(context).pop();
+                signOutGoogle();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  void signOutGoogle() async {
+    await googleSignIn.signOut();
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setBool('success', false);
+    //success = false;
+    print("User Sign Out");
+    Navigator.pushReplacementNamed(context, '/1');           
+  }
+ 
 }
