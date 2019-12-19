@@ -2,15 +2,6 @@ import '../library.dart';
 
 // TODO: Better error handling of stall data should there be missing information
 
-bool mapEquals<A, B>(Map<A, B> a, Map<A, B> b) {
-  return a?.length == b?.length &&
-      (a?.keys?.every((key) {
-            if (B is Map) return mapEquals(a[key] as Map, b[key] as Map);
-            return a[key] == b[key];
-          }) ??
-          true);
-}
-
 /// A [ChangeNotifier] with a list of stall IDs as its value
 class StallIdList extends ChangeNotifier
     implements ValueListenable<List<StallId>> {

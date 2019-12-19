@@ -138,8 +138,11 @@ class _LoginPageState extends State<LoginPage> {
       );
       */
       Navigator.pushReplacementNamed(context, '/2');
-    } else {
+    } 
+    /*
+    else {
       Navigator.pushReplacementNamed(context, '/1');
     }
+    */
   }
 }

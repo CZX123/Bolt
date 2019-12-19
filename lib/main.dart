@@ -179,20 +179,20 @@ class _BoltAppState extends State<BoltApp> {
             child: MaterialApp(
               title: 'Bolt',
               theme: themeModel.currentThemeData,
-              /*
+              /* figure this out, combine ongenerate route with the two cases /1 and /2
               onGenerateRoute: (settings) {
                 return CrossFadePageRoute(
                   builder: (_) => Home(),
                 );
               },
               */
-              //home: LoginPage(),
+              
               initialRoute: _defaultPage,
-              //onGenerateRoute: , look into
               routes: {
                 '/1' : (context) => LoginPage(),
                 '/2' : (context) => Home(),
               },
+              
             ),
           );
         },
