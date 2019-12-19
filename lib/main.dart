@@ -179,19 +179,23 @@ class _BoltAppState extends State<BoltApp> {
             child: MaterialApp(
               title: 'Bolt',
               theme: themeModel.currentThemeData,
-              /*
               onGenerateRoute: (settings) {
-                return CrossFadePageRoute(
-                  builder: (_) => Home(),
-                );
-              },
-              */
-              //home: LoginPage(),
-              initialRoute: _defaultPage,
-              //onGenerateRoute: , look into
-              routes: {
-                '/1' : (context) => LoginPage(),
-                '/2' : (context) => Home(),
+                final routes = <String, WidgetBuilder>{
+                  '/1': (context) => LoginPage(),
+                  '/2': (context) => Home(),
+                };
+                if (settings.isInitialRoute) {
+                  return CrossFadePageRoute(
+                    builder: routes[_defaultPage],
+                  );
+                }
+                if (routes.keys.contains(settings.name)) {
+                  return CrossFadePageRoute(
+                    builder: routes[settings.name],
+                  );
+                } else {
+                  throw Exception('Invalid route: ${settings.name}');
+                }
               },
             ),
           );
