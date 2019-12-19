@@ -9,7 +9,7 @@ Future<T> showCustomDialog<T>({
     context: context,
     barrierLabel: 'Dismiss',
     barrierDismissible: barrierDismissible,
-    transitionDuration: Duration(milliseconds: 200),
+    transitionDuration: 200.milliseconds,
     barrierColor: Colors.black.withOpacity(0.5),
     transitionBuilder: (
       BuildContext context,

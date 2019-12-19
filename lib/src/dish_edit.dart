@@ -1,300 +1,423 @@
 import '../library.dart';
 
-class DishEditNotifier extends ChangeNotifier {
-  Dish dish;
-  List<QuantityDishOptions> _dishes = [];
-  List<QuantityDishOptions> get dishes => _dishes;
-  set dishes(List<QuantityDishOptions> dishes) {
-    _dishes = dishes;
-    notifyListeners();
+double _getPrice({
+  @required int quantity,
+  @required double unitCost,
+  @required List<DishOption> options,
+}) {
+  assert(quantity != null);
+  assert(unitCost != null);
+  assert(options != null);
+  return quantity * options.fold(unitCost, (a, b) => a + b.addCost);
+}
+
+/// A class that takes in an [OrderedDish] and the quantity (type [int]) of that dish. Used in [DishEditScreen]
+class OrderedDishWithQuantity {
+  OrderedDish orderedDish;
+  int quantity;
+  OrderedDishWithQuantity({this.orderedDish, this.quantity});
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is OrderedDishWithQuantity &&
+            orderedDish == other.orderedDish &&
+            quantity == other.quantity;
+  }
+
+  @override
+  int get hashCode => hashValues(orderedDish, quantity);
+}
+
+/// The [DishEditingController] is similar to the [CartModel]. However, it internally works differently, as editing each dish is based on index, instead of a map structure.
+class DishEditingController extends ChangeNotifier {
+  final Dish dish;
+  final GlobalKey<SliverAnimatedListState> animatedListKey;
+  DishEditingController({@required this.dish, @required this.animatedListKey});
+
+  List<OrderedDishWithQuantity> _dishes;
+  List<OrderedDishWithQuantity> get dishes => _dishes;
+
+  /// Must be called before calling any other method!
+  void initDishes(Iterable<MapEntry<OrderedDish, int>> dishList) {
+    assert(dishList != null);
+    _dishes = dishList.map((entry) {
+      return OrderedDishWithQuantity(
+        orderedDish: entry.key,
+        quantity: entry.value,
+      );
+    }).toList();
   }
 
   void addDish() {
-    _dishes.add(QuantityDishOptions(
-      dish: dish,
+    if (animatedListKey.currentState.mounted) {
+      animatedListKey.currentState.insertItem(_dishes.length);
+    }
+    _dishes.add(OrderedDishWithQuantity(
+      orderedDish: OrderedDish(
+        dish: dish,
+        enabledOptions: [],
+      ),
       quantity: 1,
-      enabledOptions: [],
     ));
     notifyListeners();
   }
 
-  void removeDish(QuantityDishOptions dish) {
-    _dishes.remove(dish);
+  void removeDish({@required int index}) {
+    assert(index != null);
+    assert(index < dishes.length);
+    final dish = dishes.removeAt(index);
+    if (animatedListKey.currentState.mounted) {
+      animatedListKey.currentState.removeItem(
+        index,
+        (context, animation) {
+          return DishEditScreen.itemBuilder(
+            animation,
+            DishEditRow(
+              key: ObjectKey(dish),
+              index: index,
+              dishWithQuantity: dish,
+            ),
+          );
+        },
+      );
+    }
     notifyListeners();
   }
-}
 
-class QuantityDishOptions {
-  int quantity;
-  final Dish dish;
-  List<DishOption> enabledOptions;
-  QuantityDishOptions({this.quantity, this.dish, this.enabledOptions});
+  void changeOptions({
+    @required int index,
+    @required List<DishOption> options,
+  }) {
+    assert(index != null);
+    assert(index < dishes.length);
+    assert(options != null);
+    options.sort((a, b) => a.name.compareTo(b.name));
+    if (listEquals(_dishes[index].orderedDish.enabledOptions, options)) return;
+    _dishes[index].orderedDish = OrderedDish(
+      dish: dish,
+      enabledOptions: options,
+    );
+    notifyListeners();
+  }
 }
 
 class DishEditScreen extends StatefulWidget {
   /// Required for the hero animation
   final String tag;
-  final StallId stallId;
   final Dish dish;
   const DishEditScreen({
     Key key,
     @required this.tag,
-    @required this.stallId,
     @required this.dish,
   }) : super(key: key);
+
+  /// Transition Builder for adding or removing items in the Animated List.
+  static Widget itemBuilder(
+    Animation<double> animation,
+    Widget child,
+  ) {
+    return SizeTransition(
+      sizeFactor: CurvedAnimation(
+        curve: Curves.fastOutSlowIn,
+        parent: animation,
+      ),
+      child: FadeTransition(
+        opacity: Tween(
+          begin: -1.0,
+          end: 1.0,
+        ).animate(animation),
+        child: child,
+      ),
+    );
+  }
 
   @override
   _DishEditScreenState createState() => _DishEditScreenState();
 }
 
 class _DishEditScreenState extends State<DishEditScreen> {
-  final _animatedListKey = GlobalKey<AnimatedListState>();
-  final dishEditNotifier = DishEditNotifier();
-  // Treat the map here as a tuple
-  List<QuantityDishOptions> dishes = [];
-  bool loaded = false;
+  bool _init = false;
+  final _animatedListKey = GlobalKey<SliverAnimatedListState>();
+  DishEditingController _controller;
 
-  void addDish() {
-    _animatedListKey.currentState.insertItem(dishes.length);
-    dishes.add(QuantityDishOptions(
+  @override
+  void initState() {
+    super.initState();
+    _controller = DishEditingController(
       dish: widget.dish,
-      quantity: 1,
-      enabledOptions: [],
-    ));
-  }
-
-  void removeDish(int index) {
-    final dish = dishes[index];
-    final isLast = index == dishes.length - 1;
-    _animatedListKey.currentState.removeItem(
-      index,
-      (context, animation) {
-        return SizeTransition(
-          sizeFactor: CurvedAnimation(
-            curve: Curves.fastOutSlowIn,
-            parent: animation,
-          ),
-          child: FadeTransition(
-            opacity: Tween(
-              begin: -1.0,
-              end: 1.0,
-            ).animate(animation),
-            child: DishEditRow(
-              isLast: isLast,
-              dish: dish,
-              removeDish: () {},
-            ),
-          ),
-        );
-      },
+      animatedListKey: _animatedListKey,
     );
-    dishes.removeAt(index);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!loaded) {
-      loaded = true;
-      final orders =
-          Provider.of<CartModel>(context, listen: false).orders;
-      orders.value[widget.stallId]?.forEach((dish, quantity) {
-        if (dish.dish == widget.dish) {
-          dishes.add(QuantityDishOptions(
-            quantity: quantity,
-            dish: dish.dish,
-            enabledOptions: dish.enabledOptions,
-          ));
-        }
+    if (!_init) {
+      final orders = Provider.of<CartModel>(context, listen: false).orders;
+      final stallId = widget.dish.stallId;
+      // Add the initial [OrderedDish]s from the [CartModel] first
+      final relevantDishes = orders.value[stallId]?.entries?.where((entry) {
+        return entry.key.dish == widget.dish;
       });
-      dishEditNotifier.dish = widget.dish;
-      dishEditNotifier.dishes = dishes;
+      _controller.initDishes(relevantDishes ?? []);
+      _init = true;
     }
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
     final topPadding = Provider.of<EdgeInsets>(context).top;
-    return Scaffold(
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SizedBox(
-              height: topPadding,
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Hero(
-                  tag: widget.tag,
-                  createRectTween: (a, b) => MaterialRectCenterArcTween(begin: a, end: b),
-                  child: ClipPath(
-                    clipper: ShapeBorderClipper(
-                        shape: ContinuousRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    )),
-                    child: SizedBox(
-                      height: 80,
-                      child: CustomImage(
-                        widget.dish.image,
-                        fadeInDuration: null,
+    return GestureDetector(
+      onTap: () {
+        FocusScope.of(context).unfocus();
+      },
+      child: ChangeNotifierProvider.value(
+        value: _controller,
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: SlideTransition(
+            position: Tween(
+              begin: Offset(0, .05),
+              end: Offset.zero,
+            ).animate(CurvedAnimation(
+              curve: Curves.fastOutSlowIn,
+              parent: ModalRoute.of(context).animation,
+            )),
+            child: CustomScrollView(
+              slivers: <Widget>[
+                // Top headers containing dish image and name, and stall name
+                SliverList(
+                  delegate: SliverChildListDelegate.fixed([
+                    SizedBox(
+                      height: topPadding + 24,
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                      ),
+                      alignment: Alignment.centerLeft,
+                      child: Hero(
+                        tag: widget.tag,
+                        createRectTween: (a, b) {
+                          return MaterialRectCenterArcTween(begin: a, end: b);
+                        },
+                        flightShuttleBuilder: (
+                          BuildContext flightContext,
+                          Animation<double> animation,
+                          HeroFlightDirection flightDirection,
+                          BuildContext fromHeroContext,
+                          BuildContext toHeroContext,
+                        ) {
+                          Hero hero;
+                          if (flightDirection == HeroFlightDirection.push) {
+                            hero = fromHeroContext.widget;
+                          } else {
+                            hero = toHeroContext.widget;
+                          }
+                          return hero.child;
+                        },
+                        child: SizedBox(
+                          width: 96,
+                          height: 88,
+                          child: DishImage(
+                            dish: widget.dish,
+                            animation: AlwaysStoppedAnimation(1),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                      child: Selector<StallDetailsMap, String>(
+                        selector: (context, stallDetailsMap) {
+                          return stallDetailsMap
+                              .value[widget.dish.stallId].name;
+                        },
+                        builder: (context, name, child) {
+                          return Text(
+                            name,
+                            style:
+                                Theme.of(context).textTheme.display1.copyWith(
+                                      color: Theme.of(context).hintColor,
+                                    ),
+                          );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        widget.dish.name,
+                        style: Theme.of(context).textTheme.display2,
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 8,
+                    ),
+                  ]),
                 ),
-                const SizedBox(
-                  height: 16,
-                ),
-                Selector<StallDetailsMap, String>(
-                  selector: (context, stallDetailsMap) {
-                    return stallDetailsMap.value[widget.stallId].name;
-                  },
-                  builder: (context, name, child) {
-                    return Text(
-                      name,
-                      style: Theme.of(context).textTheme.display1.copyWith(
-                            color: Theme.of(context).hintColor,
-                          ),
+                // The dishes themselves
+                SliverAnimatedList(
+                  key: _animatedListKey,
+                  initialItemCount: _controller.dishes.length,
+                  itemBuilder: (context, index, animation) {
+                    return DishEditScreen.itemBuilder(
+                      animation,
+                      DishEditRow(
+                        key: ObjectKey(_controller.dishes[index]),
+                        index: index,
+                        dishWithQuantity: _controller.dishes[index],
+                      ),
                     );
                   },
                 ),
-                const SizedBox(
-                  height: 8,
-                ),
-                Text(
-                  widget.dish.name,
-                  style: Theme.of(context).textTheme.display2,
-                ),
-              ],
-            ),
-            Container(
-              constraints: BoxConstraints(
-                minHeight: height - topPadding - 96 - 104 - 35 * 1.2 - 80,
-                maxHeight: double.infinity,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  AnimatedList(
-                    key: _animatedListKey,
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    initialItemCount: dishes.length,
-                    itemBuilder: (context, index, animation) {
-                      return SizeTransition(
-                        sizeFactor: CurvedAnimation(
-                          curve: Curves.fastOutSlowIn,
-                          parent: animation,
-                        ),
-                        child: FadeTransition(
-                          opacity: Tween(
-                            begin: -1.0,
-                            end: 1.0,
-                          ).animate(animation),
-                          child: DishEditRow(
-                            isLast: index == dishes.length - 1,
-                            dish: dishes[index],
-                            removeDish: () {
-                              removeDish(index);
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(
-                    height: 16,
-                  ),
-                  RaisedButton(
-                    elevation: 0,
-                    color: Theme.of(context).cardColor,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        const Icon(Icons.add),
-                        const SizedBox(width: 3),
-                        const Text(
-                          'Add Dish',
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                    ),
-                    onPressed: addDish,
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              height: 96,
-              padding: const EdgeInsets.only(top: 32),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
+                // Add dish button
+                // SliverFillRemaining(
+                //   hasScrollBody: false,
+                //   child: Center(
+                //     child: RaisedButton(
+                //       elevation: 0,
+                //       color: Theme.of(context).cardColor,
+                //       child: Row(
+                //         mainAxisSize: MainAxisSize.min,
+                //         children: <Widget>[
+                //           const Icon(Icons.add),
+                //           const SizedBox(width: 3),
+                //           const Text(
+                //             'Add Dish',
+                //           ),
+                //           const SizedBox(width: 4),
+                //         ],
+                //       ),
+                //       onPressed: _controller.addDish,
+                //     ),
+                //   ),
+                // ),
+                SliverToBoxAdapter(
+                  child: Center(
                     child: RaisedButton(
                       elevation: 0,
                       color: Theme.of(context).cardColor,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          const Icon(Icons.clear),
-                          const SizedBox(width: 6),
+                          const Icon(Icons.add),
+                          const SizedBox(width: 3),
                           const Text(
-                            'Cancel',
+                            'Add Dish',
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 4),
                         ],
                       ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: _controller.addDish,
                     ),
                   ),
-                  const SizedBox(
-                    width: 32,
+                ),
+                // Cancel & Save Footer
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: DishEditFooter(),
                   ),
-                  Expanded(
-                    child: RaisedButton(
-                      color: Colors.green,
-                      colorBrightness: Brightness.dark,
-                      elevation: 0,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          const Icon(Icons.check),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Save',
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                      ),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                // SliverToBoxAdapter(
+                //   child: DishEditFooter(),
+                // ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
+class DishEditFooter extends StatelessWidget {
+  const DishEditFooter({Key key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPadding = Provider.of<EdgeInsets>(context).bottom;
+    return Container(
+      height: 80 + bottomPadding,
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottomPadding),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: RaisedButton(
+              elevation: 0,
+              color: Theme.of(context).cardColor,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.clear),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Cancel',
+                  ),
+                  const SizedBox(width: 6),
+                ],
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+          ),
+          const SizedBox(
+            width: 24,
+          ),
+          Expanded(
+            child: RaisedButton(
+              color: Colors.green,
+              colorBrightness: Brightness.dark,
+              elevation: 0,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.check),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Save',
+                  ),
+                  const SizedBox(width: 6),
+                ],
+              ),
+              onPressed: () {
+                final controller =
+                    Provider.of<DishEditingController>(context, listen: false);
+                Provider.of<CartModel>(context, listen: false).replaceDish(
+                  context: context,
+                  dish: controller.dish,
+                  newDishes: controller.dishes,
+                );
+                Navigator.pop(context);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class DishEditRow extends StatefulWidget {
-  final bool isLast;
-  final QuantityDishOptions dish;
-  final VoidCallback removeDish;
+  final int index;
+  final OrderedDishWithQuantity dishWithQuantity;
   const DishEditRow({
     Key key,
-    @required this.dish,
-    @required this.removeDish,
-    this.isLast,
+    @required this.index,
+    @required this.dishWithQuantity,
   }) : super(key: key);
 
   @override
@@ -303,56 +426,65 @@ class DishEditRow extends StatefulWidget {
 
 class _DishEditRowState extends State<DishEditRow> {
   TextEditingController _textController;
-  List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
+  final _focusNode = FocusNode();
+  List<Widget> dishOptions(List<DishOption> options) {
     return options.map((option) {
-      return Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 4,
+      return Material(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(8),
+          topRight: Radius.circular(69),
+          bottomLeft: Radius.circular(69),
+          bottomRight: Radius.circular(69),
         ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(8),
-            topRight: Radius.circular(69),
-            bottomLeft: Radius.circular(69),
-            bottomRight: Radius.circular(69),
+        color: Colors.primaries[option.colourCode],
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            chooseOptions();
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 4,
+            ),
+            child: Text(
+              option.name,
+              style: Theme.of(context).textTheme.subtitle.copyWith(
+                    color:
+                        Colors.primaries[option.colourCode].computeLuminance() <
+                                .6
+                            ? Colors.white
+                            : Colors.black87,
+                  ),
+            ),
           ),
-          color: Colors.primaries[option.colourCode],
-        ),
-        child: Text(
-          option.name,
-          style: Theme.of(context).textTheme.subtitle.copyWith(
-                color:
-                    Colors.primaries[option.colourCode].computeLuminance() < .6
-                        ? Colors.white
-                        : Colors.black87,
-              ),
         ),
       );
     }).toList();
   }
 
-  void chooseOption() async {
-    // TODO:
-    List<DishOption> options = await showCustomDialog(
+  void chooseOptions() async {
+    showCustomDialog(
       context: context,
       dialog: DishOptionDialog(
-        dish: widget.dish,
+        controller: Provider.of<DishEditingController>(context),
+        index: widget.index,
+        dishWithQuantity: widget.dishWithQuantity,
       ),
     );
   }
 
-  void addRemoveQuantity(bool add) {
-    if (add)
-      widget.dish.quantity += 1;
-    else if (widget.dish.quantity > 1) widget.dish.quantity -= 1;
-    _textController.text = widget.dish.quantity.toString();
+  void focusListener() {
+    if (!_focusNode.hasFocus) {
+      _textController.text = widget.dishWithQuantity.quantity.toString();
+    }
   }
 
   void onTextEdit() {
     final quantity = int.tryParse(_textController.text);
-    if (quantity != null) {
-      widget.dish.quantity = quantity;
+    if (quantity != null && quantity != 0) {
+      widget.dishWithQuantity.quantity = quantity;
     }
   }
 
@@ -360,13 +492,16 @@ class _DishEditRowState extends State<DishEditRow> {
   void initState() {
     super.initState();
     _textController = TextEditingController(
-      text: widget.dish.quantity.toString(),
+      text: widget.dishWithQuantity.quantity.toString(),
     )..addListener(onTextEdit);
+    _focusNode.addListener(focusListener);
   }
 
   @override
   void dispose() {
     super.dispose();
+    _focusNode.removeListener(focusListener);
+    _focusNode.dispose();
     _textController.removeListener(onTextEdit);
     _textController.dispose();
   }
@@ -374,18 +509,15 @@ class _DishEditRowState extends State<DishEditRow> {
   @override
   Widget build(BuildContext context) {
     // final width = MediaQuery.of(context).size.width;
-    num price = widget.dish.dish.unitPrice;
-    widget.dish.enabledOptions.forEach((option) {
-      price += option.addCost;
-    });
-    price *= widget.dish.quantity;
+    final controller = Provider.of<DishEditingController>(context);
+    final isLast = widget.index == controller.dishes.length - 1;
     return Material(
       type: MaterialType.transparency,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: 200.milliseconds,
         decoration: BoxDecoration(
           border: Border(
-            bottom: widget.isLast != null && widget.isLast
+            bottom: isLast
                 ? BorderSide(
                     color: Colors.transparent,
                     width: 1,
@@ -396,7 +528,10 @@ class _DishEditRowState extends State<DishEditRow> {
                   ),
           ),
         ),
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 8,
+        ),
         child: Row(
           children: <Widget>[
             Column(
@@ -412,45 +547,34 @@ class _DishEditRowState extends State<DishEditRow> {
                       child: const Icon(Icons.add),
                     ),
                     onTap: () {
-                      addRemoveQuantity(true);
+                      _textController.text =
+                          (widget.dishWithQuantity.quantity + 1).toString();
+                      FocusScope.of(context).unfocus();
                     },
                   ),
                 ),
-                const SizedBox(
-                  height: 4,
-                ),
                 Container(
-                  width: 40,
-                  alignment: Alignment.center,
-                  child: Material(
-                    type: MaterialType.transparency,
-                    shape: ContinuousRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        border: InputBorder.none,
-                        fillColor: Theme.of(context).cardColor,
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                        ),
-                      ),
-                      textAlign: TextAlign.center,
-                      textAlignVertical: TextAlignVertical.bottom,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: <TextInputFormatter>[
-                        WhitelistingTextInputFormatter.digitsOnly
-                      ],
-                      enableInteractiveSelection: false,
-                    ),
+                  width: 32,
+                  padding: const EdgeInsets.only(left: 2, top: 2),
+                  child: EditableText(
+                    controller: _textController,
+                    focusNode: _focusNode,
+                    enableSuggestions: false,
+                    cursorColor: Theme.of(context).accentColor,
+                    backgroundCursorColor: Theme.of(context).cardColor,
+                    cursorOpacityAnimates: true,
+                    textAlign: TextAlign.center,
+                    scrollPadding: EdgeInsets.zero,
+                    style: Theme.of(context)
+                        .textTheme
+                        .subhead
+                        .copyWith(height: 1.3),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: <TextInputFormatter>[
+                      WhitelistingTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(2),
+                    ],
                   ),
-                ),
-                const SizedBox(
-                  height: 4,
                 ),
                 Material(
                   type: MaterialType.circle,
@@ -462,7 +586,10 @@ class _DishEditRowState extends State<DishEditRow> {
                       child: const Icon(Icons.remove),
                     ),
                     onTap: () {
-                      addRemoveQuantity(false);
+                      if (widget.dishWithQuantity.quantity > 1)
+                        _textController.text =
+                            (widget.dishWithQuantity.quantity - 1).toString();
+                      FocusScope.of(context).unfocus();
                     },
                   ),
                 ),
@@ -476,64 +603,86 @@ class _DishEditRowState extends State<DishEditRow> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(widget.dish.dish.name),
+                  Text(widget.dishWithQuantity.orderedDish.dish.name),
                   const SizedBox(
                     height: 1,
                   ),
-                  Text(
-                    '\$${price.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.subtitle,
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: _textController,
+                    builder: (context, value, child) {
+                      final price = _getPrice(
+                        quantity: widget.dishWithQuantity.quantity,
+                        unitCost: widget
+                            .dishWithQuantity.orderedDish.dish.unitPrice
+                            .toDouble(),
+                        options:
+                            widget.dishWithQuantity.orderedDish.enabledOptions,
+                      );
+                      return CustomAnimatedSwitcher(
+                        child: Text(
+                          '\$' + price.toStringAsFixed(2),
+                          key: ValueKey(price),
+                          style: Theme.of(context).textTheme.subtitle,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(
                     height: 4,
                   ),
-                  Wrap(
-                    spacing: 5,
-                    runSpacing: 3,
-                    children: [
-                      ...dishOptions(context, widget.dish.enabledOptions),
-                      if (widget.dish.enabledOptions.isEmpty)
-                        Material(
-                          shape: ContinuousRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          color: Theme.of(context).cardColor,
-                          clipBehavior: Clip.antiAlias,
-                          child: InkWell(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: <Widget>[
-                                  const Icon(Icons.add, size: 20),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'Add Options',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .subtitle
-                                        .copyWith(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface,
-                                        ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                ],
-                              ),
-                            ),
-                            onTap: () {
-                              // Option selection
-                            },
-                          ),
+                  CustomAnimatedSwitcher(
+                    child: Wrap(
+                      key: ValueKey(widget
+                          .dishWithQuantity.orderedDish.enabledOptions
+                          .join()),
+                      spacing: 5,
+                      runSpacing: 3,
+                      children: [
+                        ...dishOptions(
+                          widget.dishWithQuantity.orderedDish.enabledOptions,
                         ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 2,
+                        if (widget.dishWithQuantity.orderedDish.enabledOptions
+                            .isEmpty)
+                          Material(
+                            shape: ContinuousRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            color: Theme.of(context).cardColor,
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    const Icon(Icons.add, size: 16),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      'Add Options',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .subtitle
+                                          .copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurface,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                  ],
+                                ),
+                              ),
+                              onTap: () {
+                                FocusScope.of(context).unfocus();
+                                chooseOptions();
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -550,9 +699,18 @@ class _DishEditRowState extends State<DishEditRow> {
                 child: InkWell(
                   child: Padding(
                     padding: const EdgeInsets.all(8),
-                    child: const Icon(Icons.delete),
+                    child: Icon(
+                      Icons.delete,
+                      size: 22,
+                      color: Theme.of(context).hintColor,
+                    ),
                   ),
-                  onTap: widget.removeDish,
+                  onTap: () {
+                    FocusScope.of(context).unfocus();
+                    controller.removeDish(
+                      index: widget.index,
+                    );
+                  },
                 ),
               ),
             ),
@@ -563,18 +721,31 @@ class _DishEditRowState extends State<DishEditRow> {
   }
 }
 
-class DishOptionDialog extends StatelessWidget {
-  final QuantityDishOptions dish;
-  const DishOptionDialog({Key key, @required this.dish}) : super(key: key);
+class DishOptionDialog extends StatefulWidget {
+  final DishEditingController controller;
+  final int index;
+  final OrderedDishWithQuantity dishWithQuantity;
+  const DishOptionDialog({
+    Key key,
+    @required this.controller,
+    @required this.index,
+    @required this.dishWithQuantity,
+  }) : super(key: key);
 
   @override
+  _DishOptionDialogState createState() => _DishOptionDialogState();
+}
+
+class _DishOptionDialogState extends State<DishOptionDialog> {
+  @override
   Widget build(BuildContext context) {
-    num price = dish.dish.unitPrice;
-    dish.enabledOptions.forEach((option) {
-      price += option.addCost;
-    });
-    price *= dish.quantity;
-    final priceNotifier = ValueNotifier(price);
+    final options = widget.dishWithQuantity.orderedDish.dish.options;
+    options.sort((a, b) => a.name.compareTo(b.name));
+    final price = _getPrice(
+      quantity: widget.dishWithQuantity.quantity,
+      unitCost: widget.dishWithQuantity.orderedDish.dish.unitPrice.toDouble(),
+      options: widget.dishWithQuantity.orderedDish.enabledOptions,
+    );
     return AlertDialog(
       shape: ContinuousRectangleBorder(
         borderRadius: BorderRadius.circular(32),
@@ -588,38 +759,156 @@ class DishOptionDialog extends StatelessWidget {
               ),
             ),
             child: SizedBox(
-              height: 80,
+              height: 48,
               child: CustomImage(
-                dish.dish.image,
+                widget.dishWithQuantity.orderedDish.dish.image,
                 fadeInDuration: null,
               ),
             ),
           ),
           const SizedBox(
-            width: 16,
+            width: 12,
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(dish.quantity.toString() + '× ' + dish.dish.name),
+              Text(
+                widget.dishWithQuantity.quantity.toString() +
+                    '× ' +
+                    widget.dishWithQuantity.orderedDish.dish.name,
+                style: Theme.of(context).textTheme.subhead,
+              ),
               const SizedBox(
                 height: 1,
               ),
-              ValueListenableBuilder(
-                valueListenable: priceNotifier,
-                builder: (context, value, child) {
-                  return CustomAnimatedSwitcher(
-                    crossShrink: false,
-                    child: Text(
-                      '\$${value.toStringAsFixed(2)}',
-                      key: value,
-                      style: Theme.of(context).textTheme.subtitle,
-                    ),
-                  );
-                },
+              CustomAnimatedSwitcher(
+                child: Text(
+                  '\$${price.toStringAsFixed(2)}',
+                  key: ValueKey(price),
+                  style: Theme.of(context).textTheme.subtitle,
+                ),
               ),
             ],
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var option in options)
+            OptionRow(
+              option: option,
+              selected: widget.dishWithQuantity.orderedDish.enabledOptions
+                  .contains(option),
+              onTap: () {
+                final newOptions = List<DishOption>.from(
+                  widget.dishWithQuantity.orderedDish.enabledOptions,
+                );
+                if (widget.dishWithQuantity.orderedDish.enabledOptions
+                    .contains(option)) {
+                  newOptions.remove(option);
+                } else {
+                  newOptions.add(option);
+                }
+                widget.controller
+                    .changeOptions(index: widget.index, options: newOptions);
+                setState(() {});
+              },
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class OptionRow extends StatefulWidget {
+  final DishOption option;
+  final bool selected;
+  final VoidCallback onTap;
+  const OptionRow({
+    Key key,
+    @required this.option,
+    @required this.selected,
+    @required this.onTap,
+  }) : super(key: key);
+
+  @override
+  _OptionRowState createState() => _OptionRowState();
+}
+
+class _OptionRowState extends State<OptionRow> {
+  Color get _textColor {
+    if (widget.selected) {
+      return Colors.primaries[widget.option.colourCode].computeLuminance() < .6
+          ? Colors.white
+          : Colors.black87;
+    }
+    return Colors.primaries[widget.option.colourCode];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: 4,
+      ),
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: AnimatedContainer(
+              duration: 200.milliseconds,
+              decoration: BoxDecoration(
+                color: Colors.accents[widget.option.colourCode]
+                    .withOpacity(widget.selected ? 1 : 0),
+                border: Border.all(
+                  color: Colors.primaries[widget.option.colourCode],
+                ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(69),
+                  bottomLeft: Radius.circular(69),
+                  bottomRight: Radius.circular(69),
+                ),
+              ),
+            ),
+          ),
+          Material(
+            type: MaterialType.transparency,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(69),
+              bottomLeft: Radius.circular(69),
+              bottomRight: Radius.circular(69),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: widget.onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 6,
+                  horizontal: 8,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Text(
+                      widget.option.name,
+                      style: Theme.of(context).textTheme.subtitle.copyWith(
+                            color: _textColor,
+                          ),
+                    ),
+                    Text(
+                      '\$' + widget.option.addCost.toStringAsFixed(2),
+                      style: Theme.of(context).textTheme.subtitle.copyWith(
+                            color: _textColor,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),

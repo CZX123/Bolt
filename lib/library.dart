@@ -9,6 +9,7 @@ export 'package:flutter/foundation.dart';
 export 'package:flutter/gestures.dart';
 export 'package:flutter/material.dart';
 export 'package:flutter/physics.dart';
+export 'package:flutter/rendering.dart';
 export 'package:flutter/services.dart';
 
 export 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +19,7 @@ export 'package:google_sign_in/google_sign_in.dart';
 export 'package:path_provider/path_provider.dart';
 export 'package:provider/provider.dart';
 export 'package:shared_preferences/shared_preferences.dart';
+export 'package:time/time.dart';
 
 export 'loading.dart';
 export 'login.dart';
@@ -37,6 +39,7 @@ export 'src/widgets/cross_fade_page_route.dart';
 export 'src/widgets/custom_dialog.dart';
 export 'src/widgets/custom_switcher.dart';
 export 'src/widgets/firebase.dart';
+export 'src/widgets/general_widgets.dart';
 export 'src/widgets/tab_bar.dart';
 export 'src/widgets/shimmer.dart';
 

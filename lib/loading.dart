@@ -199,7 +199,7 @@ class NoInternetWidget extends StatelessWidget {
     final dataIsNull = Provider.of<StallIdList>(context) == null;
     return IgnorePointer(
       child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
+        duration: 200.milliseconds,
         curve: Curves.ease,
         opacity: isDisconnected ? 1 : 0,
         child: Container(
