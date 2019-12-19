@@ -142,16 +142,17 @@ class CartModel extends ChangeNotifier {
   void replaceDish({
     BuildContext context,
     Dish dish,
-    List<OrderedDishWithQuantity> newDishes,
+    List<DishEditDetails> newDishes,
   }) {
-    final clonedDishes = List<OrderedDishWithQuantity>.from(newDishes);
+    final clonedDishes = List<DishEditDetails>.from(newDishes);
     // Remove and combine duplicates
     int i = 0;
     while (i < clonedDishes.length - 1) {
       int j = i + 1;
       while (j < clonedDishes.length) {
-        if (clonedDishes[i].orderedDish == clonedDishes[j].orderedDish) {
-          clonedDishes[i].quantity += clonedDishes.removeAt(j).quantity;
+        if (clonedDishes[i].hasSameOptionsAs(clonedDishes[j])) {
+          clonedDishes[i].merge(clonedDishes[j]);
+          clonedDishes.removeAt(j);
         } else {
           j++;
         }
@@ -174,11 +175,14 @@ class CartModel extends ChangeNotifier {
         _orders.value.remove(dish.stallId);
     }
     // Add new dishes
-    for (var dishWithQuantity in clonedDishes) {
+    for (var dishEditDetails in clonedDishes) {
       addDish(
         context: context,
-        orderedDish: dishWithQuantity.orderedDish,
-        quantity: dishWithQuantity.quantity,
+        orderedDish: OrderedDish(
+          dish: dish,
+          enabledOptions: dishEditDetails.enabledOptions,
+        ),
+        quantity: dishEditDetails.quantity,
       );
     }
     if (orders.value.isEmpty) {
@@ -268,4 +272,10 @@ class OrderedDish {
 
   @override
   int get hashCode => hashValues(dish, hashList(enabledOptions));
+
+  /// Required for hero transition
+  @override
+  String toString() {
+    return 'OrderedDish($dish, $enabledOptions)';
+  }
 }

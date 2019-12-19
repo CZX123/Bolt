@@ -268,10 +268,13 @@ class _DishImageState extends State<DishImage> {
                 child: child,
               );
             },
-            child: CustomImage(
-              widget.dish.image,
-              fallbackMemoryImage: kErrorImage,
-              fadeInDuration: 300.milliseconds,
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: CustomImage(
+                widget.dish.image,
+                fallbackMemoryImage: kErrorImage,
+                fadeInDuration: 300.milliseconds,
+              ),
             ),
           ),
         ),

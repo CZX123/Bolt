@@ -11,22 +11,32 @@ double _getPrice({
   return quantity * options.fold(unitCost, (a, b) => a + b.addCost);
 }
 
-/// A class that takes in an [OrderedDish] and the quantity (type [int]) of that dish. Used in [DishEditScreen]
-class OrderedDishWithQuantity {
-  OrderedDish orderedDish;
+/// A class that contains the quantity (type [int]) of that dish and enabled [DishOptions]s of the dish
+class DishEditDetails {
   int quantity;
-  OrderedDishWithQuantity({this.orderedDish, this.quantity});
+  List<DishOption> enabledOptions;
+  DishEditDetails({this.quantity, this.enabledOptions});
+
+  /// Checks whether 2 different [DishEditDetails] have the same [DishOption]s. Used in merging multiple [DishEditDetails] when saving.
+  bool hasSameOptionsAs(DishEditDetails other) {
+    return listEquals(enabledOptions, other.enabledOptions);
+  }
+
+  /// Adds the [quantity] of the other [DishEditDetails] to the current instance. Used in merging multiple [DishEditDetails] when saving.
+  void merge(DishEditDetails other) {
+    quantity += other.quantity;
+  }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is OrderedDishWithQuantity &&
-            orderedDish == other.orderedDish &&
-            quantity == other.quantity;
+        other is DishEditDetails &&
+            quantity == other.quantity &&
+            listEquals(enabledOptions, other.enabledOptions);
   }
 
   @override
-  int get hashCode => hashValues(orderedDish, quantity);
+  int get hashCode => hashValues(quantity, hashList(enabledOptions));
 }
 
 /// The [DishEditingController] is similar to the [CartModel]. However, it internally works differently, as editing each dish is based on index, instead of a map structure.
@@ -35,29 +45,32 @@ class DishEditingController extends ChangeNotifier {
   final GlobalKey<SliverAnimatedListState> animatedListKey;
   DishEditingController({@required this.dish, @required this.animatedListKey});
 
-  List<OrderedDishWithQuantity> _dishes;
-  List<OrderedDishWithQuantity> get dishes => _dishes;
+  List<DishEditDetails> _dishes;
+  List<DishEditDetails> get dishes => _dishes;
 
   /// Must be called before calling any other method!
-  void initDishes(Iterable<MapEntry<OrderedDish, int>> dishList) {
-    assert(dishList != null);
-    _dishes = dishList.map((entry) {
-      return OrderedDishWithQuantity(
-        orderedDish: entry.key,
-        quantity: entry.value,
-      );
-    }).toList();
+  void initDishes(Orders orders) {
+    assert(dish != null);
+    assert(orders != null);
+    final stallId = dish.stallId;
+    // Add the initial [OrderedDish]s from the [CartModel] first
+    _dishes = [];
+    orders.value[stallId]?.forEach((orderedDish, quantity) {
+      if (orderedDish.dish == dish) {
+        _dishes.add(DishEditDetails(
+          enabledOptions: List.from(orderedDish.enabledOptions),
+          quantity: quantity,
+        ));
+      }
+    });
   }
 
   void addDish() {
     if (animatedListKey.currentState.mounted) {
       animatedListKey.currentState.insertItem(_dishes.length);
     }
-    _dishes.add(OrderedDishWithQuantity(
-      orderedDish: OrderedDish(
-        dish: dish,
-        enabledOptions: [],
-      ),
+    _dishes.add(DishEditDetails(
+      enabledOptions: [],
       quantity: 1,
     ));
     notifyListeners();
@@ -76,7 +89,7 @@ class DishEditingController extends ChangeNotifier {
             DishEditRow(
               key: ObjectKey(dish),
               index: index,
-              dishWithQuantity: dish,
+              dishEditDetails: dish,
             ),
           );
         },
@@ -85,19 +98,20 @@ class DishEditingController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void changeOptions({
+  void toggleOption({
     @required int index,
-    @required List<DishOption> options,
+    @required DishOption option,
   }) {
     assert(index != null);
     assert(index < dishes.length);
-    assert(options != null);
-    options.sort((a, b) => a.name.compareTo(b.name));
-    if (listEquals(_dishes[index].orderedDish.enabledOptions, options)) return;
-    _dishes[index].orderedDish = OrderedDish(
-      dish: dish,
-      enabledOptions: options,
-    );
+    assert(option != null);
+    if (_dishes[index].enabledOptions.contains(option)) {
+      _dishes[index].enabledOptions.remove(option);
+    } else {
+      _dishes[index].enabledOptions
+        ..add(option)
+        ..sort();
+    }
     notifyListeners();
   }
 }
@@ -155,12 +169,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
     super.didChangeDependencies();
     if (!_init) {
       final orders = Provider.of<CartModel>(context, listen: false).orders;
-      final stallId = widget.dish.stallId;
-      // Add the initial [OrderedDish]s from the [CartModel] first
-      final relevantDishes = orders.value[stallId]?.entries?.where((entry) {
-        return entry.key.dish == widget.dish;
-      });
-      _controller.initDishes(relevantDishes ?? []);
+      _controller.initDishes(orders);
       _init = true;
     }
   }
@@ -276,7 +285,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
                       DishEditRow(
                         key: ObjectKey(_controller.dishes[index]),
                         index: index,
-                        dishWithQuantity: _controller.dishes[index],
+                        dishEditDetails: _controller.dishes[index],
                       ),
                     );
                   },
@@ -413,11 +422,11 @@ class DishEditFooter extends StatelessWidget {
 
 class DishEditRow extends StatefulWidget {
   final int index;
-  final OrderedDishWithQuantity dishWithQuantity;
+  final DishEditDetails dishEditDetails;
   const DishEditRow({
     Key key,
     @required this.index,
-    @required this.dishWithQuantity,
+    @required this.dishEditDetails,
   }) : super(key: key);
 
   @override
@@ -470,21 +479,21 @@ class _DishEditRowState extends State<DishEditRow> {
       dialog: DishOptionDialog(
         controller: Provider.of<DishEditingController>(context),
         index: widget.index,
-        dishWithQuantity: widget.dishWithQuantity,
+        dishEditDetails: widget.dishEditDetails,
       ),
     );
   }
 
   void focusListener() {
     if (!_focusNode.hasFocus) {
-      _textController.text = widget.dishWithQuantity.quantity.toString();
+      _textController.text = widget.dishEditDetails.quantity.toString();
     }
   }
 
   void onTextEdit() {
     final quantity = int.tryParse(_textController.text);
     if (quantity != null && quantity != 0) {
-      widget.dishWithQuantity.quantity = quantity;
+      widget.dishEditDetails.quantity = quantity;
     }
   }
 
@@ -492,7 +501,7 @@ class _DishEditRowState extends State<DishEditRow> {
   void initState() {
     super.initState();
     _textController = TextEditingController(
-      text: widget.dishWithQuantity.quantity.toString(),
+      text: widget.dishEditDetails.quantity.toString(),
     )..addListener(onTextEdit);
     _focusNode.addListener(focusListener);
   }
@@ -548,7 +557,7 @@ class _DishEditRowState extends State<DishEditRow> {
                     ),
                     onTap: () {
                       _textController.text =
-                          (widget.dishWithQuantity.quantity + 1).toString();
+                          (widget.dishEditDetails.quantity + 1).toString();
                       FocusScope.of(context).unfocus();
                     },
                   ),
@@ -586,9 +595,9 @@ class _DishEditRowState extends State<DishEditRow> {
                       child: const Icon(Icons.remove),
                     ),
                     onTap: () {
-                      if (widget.dishWithQuantity.quantity > 1)
+                      if (widget.dishEditDetails.quantity > 1)
                         _textController.text =
-                            (widget.dishWithQuantity.quantity - 1).toString();
+                            (widget.dishEditDetails.quantity - 1).toString();
                       FocusScope.of(context).unfocus();
                     },
                   ),
@@ -603,7 +612,7 @@ class _DishEditRowState extends State<DishEditRow> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(widget.dishWithQuantity.orderedDish.dish.name),
+                  Text(controller.dish.name),
                   const SizedBox(
                     height: 1,
                   ),
@@ -611,12 +620,9 @@ class _DishEditRowState extends State<DishEditRow> {
                     valueListenable: _textController,
                     builder: (context, value, child) {
                       final price = _getPrice(
-                        quantity: widget.dishWithQuantity.quantity,
-                        unitCost: widget
-                            .dishWithQuantity.orderedDish.dish.unitPrice
-                            .toDouble(),
-                        options:
-                            widget.dishWithQuantity.orderedDish.enabledOptions,
+                        quantity: widget.dishEditDetails.quantity,
+                        unitCost: controller.dish.unitPrice.toDouble(),
+                        options: widget.dishEditDetails.enabledOptions,
                       );
                       return CustomAnimatedSwitcher(
                         child: Text(
@@ -632,17 +638,15 @@ class _DishEditRowState extends State<DishEditRow> {
                   ),
                   CustomAnimatedSwitcher(
                     child: Wrap(
-                      key: ValueKey(widget
-                          .dishWithQuantity.orderedDish.enabledOptions
-                          .join()),
+                      key: ValueKey(
+                          widget.dishEditDetails.enabledOptions.join()),
                       spacing: 5,
                       runSpacing: 3,
                       children: [
                         ...dishOptions(
-                          widget.dishWithQuantity.orderedDish.enabledOptions,
+                          widget.dishEditDetails.enabledOptions,
                         ),
-                        if (widget.dishWithQuantity.orderedDish.enabledOptions
-                            .isEmpty)
+                        if (widget.dishEditDetails.enabledOptions.isEmpty)
                           Material(
                             shape: ContinuousRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -724,12 +728,12 @@ class _DishEditRowState extends State<DishEditRow> {
 class DishOptionDialog extends StatefulWidget {
   final DishEditingController controller;
   final int index;
-  final OrderedDishWithQuantity dishWithQuantity;
+  final DishEditDetails dishEditDetails;
   const DishOptionDialog({
     Key key,
     @required this.controller,
     @required this.index,
-    @required this.dishWithQuantity,
+    @required this.dishEditDetails,
   }) : super(key: key);
 
   @override
@@ -739,12 +743,11 @@ class DishOptionDialog extends StatefulWidget {
 class _DishOptionDialogState extends State<DishOptionDialog> {
   @override
   Widget build(BuildContext context) {
-    final options = widget.dishWithQuantity.orderedDish.dish.options;
-    options.sort((a, b) => a.name.compareTo(b.name));
+    final options = widget.controller.dish.options..sort();
     final price = _getPrice(
-      quantity: widget.dishWithQuantity.quantity,
-      unitCost: widget.dishWithQuantity.orderedDish.dish.unitPrice.toDouble(),
-      options: widget.dishWithQuantity.orderedDish.enabledOptions,
+      quantity: widget.dishEditDetails.quantity,
+      unitCost: widget.controller.dish.unitPrice.toDouble(),
+      options: widget.dishEditDetails.enabledOptions,
     );
     return AlertDialog(
       shape: ContinuousRectangleBorder(
@@ -761,7 +764,7 @@ class _DishOptionDialogState extends State<DishOptionDialog> {
             child: SizedBox(
               height: 48,
               child: CustomImage(
-                widget.dishWithQuantity.orderedDish.dish.image,
+                widget.controller.dish.image,
                 fadeInDuration: null,
               ),
             ),
@@ -775,9 +778,9 @@ class _DishOptionDialogState extends State<DishOptionDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Text(
-                widget.dishWithQuantity.quantity.toString() +
+                widget.dishEditDetails.quantity.toString() +
                     '× ' +
-                    widget.dishWithQuantity.orderedDish.dish.name,
+                    widget.controller.dish.name,
                 style: Theme.of(context).textTheme.subhead,
               ),
               const SizedBox(
@@ -800,20 +803,12 @@ class _DishOptionDialogState extends State<DishOptionDialog> {
           for (var option in options)
             OptionRow(
               option: option,
-              selected: widget.dishWithQuantity.orderedDish.enabledOptions
-                  .contains(option),
+              selected: widget.dishEditDetails.enabledOptions.contains(option),
               onTap: () {
-                final newOptions = List<DishOption>.from(
-                  widget.dishWithQuantity.orderedDish.enabledOptions,
+                widget.controller.toggleOption(
+                  index: widget.index,
+                  option: option,
                 );
-                if (widget.dishWithQuantity.orderedDish.enabledOptions
-                    .contains(option)) {
-                  newOptions.remove(option);
-                } else {
-                  newOptions.add(option);
-                }
-                widget.controller
-                    .changeOptions(index: widget.index, options: newOptions);
                 setState(() {});
               },
             ),

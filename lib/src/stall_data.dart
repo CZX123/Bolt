@@ -254,7 +254,7 @@ class Dish {
   }
 }
 
-class DishOption {
+class DishOption implements Comparable {
   final int id;
   final String name;
   final num addCost;
@@ -288,5 +288,15 @@ class DishOption {
   @override
   String toString() {
     return 'DishOption($id)';
+  }
+
+  /// Sorting used in [DishEditScreen] to sort [DishOption] by alphabetical order
+  @override
+  int compareTo(Object other) {
+    if (runtimeType != other.runtimeType) {
+      throw Exception('Cannot compare $runtimeType with ${other.runtimeType}!');
+    }
+    final DishOption typedOther = other;
+    return name.compareTo(typedOther.name);
   }
 }

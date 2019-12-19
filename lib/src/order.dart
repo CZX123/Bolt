@@ -414,9 +414,7 @@ class OrderDishRow extends StatelessWidget {
                   ),
                 ],
                 child: DishEditScreen(
-                  tag: orderedDish.dish.toString() +
-                      ' ' +
-                      orderedDish.enabledOptions.join(),
+                  tag: orderedDish.toString(),
                   dish: orderedDish.dish,
                 ),
               );
@@ -432,9 +430,7 @@ class OrderDishRow extends StatelessWidget {
                 width: 96,
                 height: 88,
                 child: Hero(
-                  tag: orderedDish.dish.toString() +
-                      ' ' +
-                      orderedDish.enabledOptions.join(),
+                  tag: orderedDish.toString(),
                   createRectTween: (a, b) {
                     return MaterialRectCenterArcTween(begin: a, end: b);
                   },
