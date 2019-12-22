@@ -208,6 +208,7 @@ class Dish {
       if (value != null)
         options.add(DishOption.fromJson(key.toString(), value));
     });
+    options.sort();
     return Dish(
       id: int.parse(dishId),
       stallId: stallId,

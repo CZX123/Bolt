@@ -30,9 +30,8 @@ final List<ThemeData> themeList = [
     accentColor: Color(0xFF54D2D2),
     // scaffoldBackgroundColor: Color(0xFFFFFCED),
     scaffoldBackgroundColor: Colors.grey[50],
-    canvasColor: Color(0xFFFFFBE6),
-    // cardColor: Color(0xFFFFF9DB),
-    cardColor: Color(0xFFE9EEF0),
+    canvasColor: Color(0xFFEDF3F5),
+    cardColor: Color(0xFFE1E8EB),
     textTheme: textTheme.merge(lightThemeText),
     toggleableActiveColor: Color(0xFFFFC800),
     buttonTheme: ButtonThemeData(

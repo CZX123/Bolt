@@ -1,8 +1,8 @@
 import '../library.dart';
 
-double _getPrice({
+num _getPrice({
   @required int quantity,
-  @required double unitCost,
+  @required num unitCost,
   @required List<DishOption> options,
 }) {
   assert(quantity != null);
@@ -49,16 +49,16 @@ class DishEditingController extends ChangeNotifier {
   List<DishEditDetails> get dishes => _dishes;
 
   /// Must be called before calling any other method!
-  void initDishes(Orders orders) {
+  void initDishes(OrderMap orders) {
     assert(dish != null);
     assert(orders != null);
     final stallId = dish.stallId;
-    // Add the initial [OrderedDish]s from the [CartModel] first
+    // Add the initial [DishOrder]s from the [CartModel] first
     _dishes = [];
-    orders.value[stallId]?.forEach((orderedDish, quantity) {
-      if (orderedDish.dish == dish) {
+    orders[stallId]?.forEach((dishOrder, quantity) {
+      if (dishOrder.dish == dish) {
         _dishes.add(DishEditDetails(
-          enabledOptions: List.from(orderedDish.enabledOptions),
+          enabledOptions: List.from(dishOrder.enabledOptions),
           quantity: quantity,
         ));
       }
@@ -357,65 +357,30 @@ class DishEditFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = Provider.of<EdgeInsets>(context).bottom;
-    return Container(
-      height: 80 + bottomPadding,
-      padding: EdgeInsets.fromLTRB(24, 16, 24, 16 + bottomPadding),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: RaisedButton(
-              elevation: 0,
-              color: Theme.of(context).cardColor,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(Icons.clear),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Cancel',
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-          ),
-          const SizedBox(
-            width: 24,
-          ),
-          Expanded(
-            child: RaisedButton(
-              color: Colors.green,
-              colorBrightness: Brightness.dark,
-              elevation: 0,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  const Icon(Icons.check),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Save',
-                  ),
-                  const SizedBox(width: 6),
-                ],
-              ),
-              onPressed: () {
-                final controller =
-                    Provider.of<DishEditingController>(context, listen: false);
-                Provider.of<CartModel>(context, listen: false).replaceDish(
-                  context: context,
-                  dish: controller.dish,
-                  newDishes: controller.dishes,
-                );
-                Navigator.pop(context);
-              },
-            ),
-          ),
-        ],
-      ),
+    return Footer(
+      buttons: [
+        FooterButton(
+          icon: const Icon(Icons.clear),
+          text: 'Cancel',
+          onTap: () => Navigator.pop(context),
+        ),
+        FooterButton(
+          icon: const Icon(Icons.check),
+          text: 'Save',
+          color: Theme.of(context).accentColor,
+          colorBrightness: Brightness.dark,
+          onTap: () {
+            final controller =
+                Provider.of<DishEditingController>(context, listen: false);
+            Provider.of<CartModel>(context, listen: false).replaceDish(
+              context: context,
+              dish: controller.dish,
+              newDishes: controller.dishes,
+            );
+            Navigator.pop(context);
+          },
+        ),
+      ],
     );
   }
 }
@@ -743,7 +708,7 @@ class DishOptionDialog extends StatefulWidget {
 class _DishOptionDialogState extends State<DishOptionDialog> {
   @override
   Widget build(BuildContext context) {
-    final options = widget.controller.dish.options..sort();
+    final options = widget.controller.dish.options;
     final price = _getPrice(
       quantity: widget.dishEditDetails.quantity,
       unitCost: widget.controller.dish.unitPrice.toDouble(),

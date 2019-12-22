@@ -1,107 +1,31 @@
-// import '../library.dart';
+import '../library.dart';
 
-// class PaymentScreen extends StatefulWidget {
-//   const PaymentScreen({Key key}) : super(key: key);
+/// A very simple mock payment API. Will need to further improve and enhance on it.
+class PaymentApi {
+  static Future<PaymentCompletionDetails> pay({
+    @required PaymentDetails details,
+  }) async {
+    // TODO: Implement payment
+    await Future.delayed(1.seconds);
+    return PaymentCompletionDetails._(
+      stallId: details.stallId,
+      success: true,
+    );
+  }
+}
 
-//   @override
-//   _PaymentScreenState createState() => _PaymentScreenState();
-// }
+class PaymentDetails {
+  /// Which stall to pay to
+  final StallId stallId;
 
-// class _PaymentScreenState extends State<PaymentScreen> {
-//   final _scrollController = ScrollController();
-//   @override
-//   Widget build(BuildContext context) {
-//     EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
-//     return CustomBottomSheet(
-//       controllers: [_scrollController],
-//       headerHeight: 56 + 12 + windowPadding.bottom,
-//       headerBuilder:
-//           (context, animation, viewSheetCallback, innerBoxIsScrolled) {
-//         return AnimatedBuilder(
-//           animation: animation,
-//           builder: (context, child) {
-//             return IgnorePointer(
-//               ignoring: animation.value > 0.05,
-//               child: child,
-//             );
-//           },
-//           child: Stack(
-//             children: <Widget>[
-//               AnimatedBuilder(
-//                 animation: animation,
-//                 builder: (context, child) {
-//                   return Column(
-//                     mainAxisSize: MainAxisSize.min,
-//                     children: <Widget>[
-//                       Container(
-//                         padding: const EdgeInsets.only(top: 8),
-//                         height: animation.value.clamp(0.0, double.infinity) *
-//                                 (windowPadding.top - 12) +
-//                             12,
-//                         alignment: Alignment.topCenter,
-//                         child: Container(
-//                           height: 4,
-//                           width: 24,
-//                           decoration: BoxDecoration(
-//                             color: Theme.of(context).dividerColor,
-//                             borderRadius: BorderRadius.circular(2),
-//                           ),
-//                         ),
-//                       ),
-//                       child,
-//                     ],
-//                   );
-//                 },
-//                 child: Column(
-//                   mainAxisSize: MainAxisSize.min,
-//                   children: <Widget>[
-//                     FadeTransition(
-//                       opacity:
-//                           Tween<double>(begin: 1, end: -4).animate(animation),
-//                       child: Container(
-//                         height: 56,
-//                         alignment: Alignment.center,
-//                         child: Text('Confirm Order'),
-//                       ),
-//                     ),
-//                     SizedBox(
-//                       height: windowPadding.bottom,
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               Material(
-//                 type: MaterialType.transparency,
-//                 child: FlatButton(
-//                   shape: ContinuousRectangleBorder(),
-//                   onPressed: viewSheetCallback,
-//                   child: Container(
-//                     height: 56 + 12 + windowPadding.bottom + 20,
-//                     width: double.infinity,
-//                   ),
-//                 ),
-//               ),
-//             ],
-//           ),
-//         );
-//       },
-//       contentBuilder: (context, animation) {
-//         return SingleChildScrollView(
-//           controller: _scrollController,
-//           physics: NeverScrollableScrollPhysics(),
-//           child: FadeTransition(
-//             opacity: Tween<double>(begin: -0.25, end: 1.5).animate(animation),
-//             child: Column(
-//               children: <Widget>[
-//                 for (int i = 0; i < 30; i++)
-//                   ListTile(
-//                     title: Text('$i'),
-//                   ),
-//               ],
-//             ),
-//           ),
-//         );
-//       },
-//     );
-//   }
-// }
+  /// How much to pay. Amount in SGD.
+  final num amount;
+
+  const PaymentDetails({this.stallId, this.amount});
+}
+
+class PaymentCompletionDetails {
+  final StallId stallId;
+  final bool success;
+  const PaymentCompletionDetails._({this.stallId, this.success});
+}

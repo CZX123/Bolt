@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import '../library.dart';
 
 /// The [CartModel] is equivalent to a shopping cart, and stores all the user orders.
@@ -6,82 +8,36 @@ import '../library.dart';
 /// - [orders] (the main one used)
 /// - [orderThumbnails] (used for the [OrderPreview])
 ///
-/// It also exposes 3 methods:
-/// - [addDish], which takes in the [StallId] and [OrderedDish], and usually adds one [OrderedDish]
-/// - [removeDish], which also takes in the [StallId] and [OrderedDish], and only removes one unit of the [OrderedDish] specified
+/// It also exposes a few methods:
+/// - [orderThumbnails], used in [OrderPreview]
+/// - [addDish], which takes in the [StallId] and [DishOrder], and usually adds one [DishOrder]
+/// - [removeDish], which also takes in the [StallId] and [DishOrder], and only removes one unit of the [DishOrder] specified
 /// - [replaceDish], used in the [DishEditScreen], to replace all instances of a specific [Dish] present with a new list of [OrderedDishWithQuantity].
 class CartModel extends ChangeNotifier {
   CartModel();
 
-  final _orders = Orders();
-  Orders get orders => _orders;
-  // void setOrders({BuildContext context, Orders orders}) {
-  //   if (_orders == orders) return;
-  //   if (orders == null) {
-  //     if (_orders.value.isNotEmpty) _orders.value = {};
-  //     return;
-  //   }
-  //   // Handle order sheet
-  //   if (_orders.value.isEmpty && orders.value.isNotEmpty) {
-  //     final orderSheetController =
-  //         Provider.of<BottomSheetController>(context, listen: false);
-  //     // Animate order sheet if it is hidden
-  //     if (orderSheetController.altAnimation.value < 0) {
-  //       orderSheetController.animateTo(BottomSheetPosition.end);
-  //     }
-  //   } else if (orders.value.isEmpty) {
-  //     // Hide order sheet
-  //     final orderSheetController =
-  //         Provider.of<BottomSheetController>(context, listen: false);
-  //     orderSheetController.animateTo(BottomSheetPosition.hidden);
-  //   }
-  //   _orders.value = orders.value;
-  //   // Also replace orderThumbnails by iterating through [orders]
-  //   _orderThumbnails = [];
-  //   orders.value.forEach((stallId, dishMap) {
-  //     dishMap.forEach((orderedDish, quantity) {
-  //       _orderThumbnails.add(orderedDish.dish.image);
-  //     });
-  //   });
-  //   notifyListeners();
-  // }
+  final _orders = OrderMap();
+  OrderMap get orders => _orders;
 
-  List<String> _orderThumbnails = [];
-  List<String> get orderThumbnails => _orderThumbnails;
-
-  /// Gets position of a [OrderedDish] in [_orders] to correctly add or remove a thumbnail from [_orderThumbnails]
-  int _getIndex(StallId stallId, OrderedDish orderedDish) {
-    assert(_orders.value.containsKey(stallId));
-    assert(_orders.value[stallId].containsKey(orderedDish));
-    int index = 0;
-    for (var id in _orders.value.keys) {
-      if (id == stallId) break;
-      index += _orders.value[id].length;
+  /// Used in [OrderPreview] to get a list of thumbnails to display
+  List<String> get orderThumbnails {
+    List<String> thumbnails = [];
+    for (Map<DishOrder, int> dishMap in _orders.values) {
+      thumbnails.addAll(dishMap.keys.map((dishOrder) {
+        return dishOrder.dish.image;
+      }));
     }
-    index += _orders.value[stallId].keys.toList().indexOf(orderedDish);
-    return index;
+    return thumbnails;
   }
 
-  void _addThumbnail(StallId stallId, OrderedDish orderedDish) {
-    _orderThumbnails.insert(
-      _getIndex(stallId, orderedDish),
-      orderedDish.dish.image,
-    );
-  }
-
-  /// Note: Need to call this before removing the actual [OrderedDish], else it will not be able to find the index because it does not exist
-  void _removeThumbnail(StallId stallId, OrderedDish orderedDish) {
-    _orderThumbnails.removeAt(_getIndex(stallId, orderedDish));
-  }
-
-  /// Adds one (by default) [OrderedDish] to [_orders]
+  /// Adds one (by default) [DishOrder] to [_orders]
   void addDish({
     BuildContext context,
-    OrderedDish orderedDish,
+    DishOrder dishOrder,
     int quantity = 1,
   }) {
-    final stallId = orderedDish.dish.stallId;
-    if (_orders.value.isEmpty) {
+    final stallId = dishOrder.dish.stallId;
+    if (_orders.isEmpty) {
       final orderSheetController = Provider.of<BottomSheetController>(context);
       // Animate order sheet if it is hidden
       if (orderSheetController.altAnimation.value < 0) {
@@ -89,22 +45,17 @@ class CartModel extends ChangeNotifier {
       }
     }
 
-    /// Checks if the [StallId] is already in the [_orders]
-    if (_orders.value.containsKey(stallId)) {
-      /// If the [OrderedDish] is already inside [_orders], then there is no need to update [_orderThumbnails], and only need to increase quantity by 1
-      if (_orders.value[stallId].containsKey(orderedDish)) {
-        _orders.value[stallId][orderedDish] += quantity;
-      }
+    /// If the [StallId] is not in the [_orders] or is null, set it to an empty map first
+    _orders[stallId] ??= DishOrderMap();
 
-      /// Else need to add the image of the dish to [_orderThumbnails]
-      else {
-        _orders.value[stallId][orderedDish] = quantity;
-        _addThumbnail(stallId, orderedDish);
-      }
-    } else {
-      _orders.value[stallId] = {};
-      _orders.value[stallId][orderedDish] = quantity;
-      _addThumbnail(stallId, orderedDish);
+    /// If the [DishOrder] is already inside [_orders], then there is no need to update [_orderThumbnails], and only need to increase quantity by 1
+    if (_orders[stallId].containsKey(dishOrder)) {
+      _orders[stallId][dishOrder] += quantity;
+    }
+
+    /// Else need to add the image of the dish to [_orderThumbnails]
+    else {
+      _orders[stallId][dishOrder] = quantity;
     }
     notifyListeners();
   }
@@ -112,24 +63,24 @@ class CartModel extends ChangeNotifier {
   /// Removes only one unit of a specific dish
   void removeDish({
     BuildContext context,
-    OrderedDish orderedDish,
+    DishOrder dishOrder,
   }) {
-    final stallId = orderedDish.dish.stallId;
+    final stallId = dishOrder.dish.stallId;
     // Return if dish already does not exist
-    if (!_orders.value.containsKey(stallId) ||
-        !_orders.value[stallId].containsKey(orderedDish)) {
+    if (!_orders.containsKey(stallId) ||
+        !_orders[stallId].containsKey(dishOrder)) {
       return;
     }
-    _orders.value[stallId][orderedDish] -= 1;
+    _orders[stallId][dishOrder] -= 1;
     // If new quantity is zero, remove the dish entirely
-    if (_orders.value[stallId][orderedDish] <= 0) {
-      _removeThumbnail(stallId, orderedDish);
-      _orders.value[stallId].remove(orderedDish);
+    if (_orders[stallId][dishOrder] <= 0) {
+      _orders[stallId].remove(dishOrder);
 
-      /// Remove stall id as well if the list of [OrderedDish] in the stall is empty
-      if (_orders.value[stallId].isEmpty) _orders.value.remove(stallId);
-      if (orders.value.isEmpty) {
-        // Hide order sheet
+      /// Remove stall id as well if the list of [DishOrder] in the stall is empty
+      if (_orders[stallId].isEmpty) _orders.remove(stallId);
+
+      // Hide order sheet if there are completely no orders
+      if (_orders.isEmpty) {
         final orderSheetController =
             Provider.of<BottomSheetController>(context, listen: false);
         orderSheetController.animateTo(BottomSheetPosition.hidden);
@@ -138,7 +89,26 @@ class CartModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Replaces all [OrderedDish] that contains the specified `dish` with a new list of [OrderedDishWithQuantity]
+  /// Removes all [DishOrder] that comes from the stall with the given [stallId]
+  void removeStall({
+    BuildContext context,
+    StallId stallId,
+  }) {
+    // Return if the stall already does not exist
+    if (!_orders.containsKey(stallId)) {
+      return;
+    }
+    _orders.remove(stallId);
+    if (_orders.isEmpty) {
+      // Hide order sheet
+      final orderSheetController =
+          Provider.of<BottomSheetController>(context, listen: false);
+      orderSheetController.animateTo(BottomSheetPosition.hidden);
+    }
+    notifyListeners();
+  }
+
+  /// Replaces all [DishOrder] that contains the specified `dish` with a new list of [OrderedDishWithQuantity]
   void replaceDish({
     BuildContext context,
     Dish dish,
@@ -159,33 +129,27 @@ class CartModel extends ChangeNotifier {
       }
       i++;
     }
-    // Remove existing [OrderedDish]s whose dish is equal to new dish
-    if (_orders.value.containsKey(dish.stallId)) {
-      int k = 0;
-      while (k < _orders.value[dish.stallId].keys.length) {
-        final orderedDish = _orders.value[dish.stallId].keys.toList()[k];
-        if (orderedDish.dish == dish) {
-          _removeThumbnail(dish.stallId, orderedDish);
-          _orders.value[dish.stallId].remove(orderedDish);
-        } else {
-          k++;
-        }
+    // Remove existing [DishOrder]s whose dish is equal to new dish
+    if (_orders.containsKey(dish.stallId)) {
+      _orders[dish.stallId].removeWhere((dishOrder, quantity) {
+        return dishOrder.dish == dish;
+      });
+      if (_orders[dish.stallId].isEmpty) {
+        _orders.remove(dish.stallId);
       }
-      if (_orders.value[dish.stallId].isEmpty)
-        _orders.value.remove(dish.stallId);
     }
     // Add new dishes
-    for (var dishEditDetails in clonedDishes) {
+    for (DishEditDetails dishEditDetails in clonedDishes) {
       addDish(
         context: context,
-        orderedDish: OrderedDish(
+        dishOrder: DishOrder(
           dish: dish,
           enabledOptions: dishEditDetails.enabledOptions,
         ),
         quantity: dishEditDetails.quantity,
       );
     }
-    if (orders.value.isEmpty) {
+    if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
           Provider.of<BottomSheetController>(context, listen: false);
@@ -193,12 +157,12 @@ class CartModel extends ChangeNotifier {
     }
   }
 
-  /// Gets all [OrderedDish] that contains the specified `dish`
-  List<OrderedDish> getOrderedDishesFrom(Dish dish) {
+  /// Gets all [DishOrder] that contains the specified `dish`
+  List<DishOrder> getOrderedDishesFrom(Dish dish) {
     final stallId = dish.stallId;
-    if (!_orders.value.containsKey(stallId)) return [];
-    return _orders.value[stallId].keys.where((orderedDish) {
-      return orderedDish.dish == dish;
+    if (!_orders.containsKey(stallId)) return [];
+    return _orders[stallId].keys.where((dishOrder) {
+      return dishOrder.dish == dish;
     }).toList();
   }
 }
@@ -210,7 +174,7 @@ class CartModel extends ChangeNotifier {
 //   final DateTime dateTime;
 //   final int studentId;
 //   final int stallId;
-//   Map<OrderedDish, int> dishQuantities;
+//   Map<DishOrder, int> dishQuantities;
 //   Order({
 //     this.ordered = false,
 //     this.id,
@@ -221,8 +185,8 @@ class CartModel extends ChangeNotifier {
 //   });
 // }
 
-/// A wrapper class that contains all the orders in the shopping cart. It is a wrapper for a [Map<StallId, Map<OrderedDish, int>>]
-class Orders {
+/// A wrapper class that contains all the orders in the shopping cart. It is a wrapper for a [Map<StallId, Map<DishOrder, int>>]
+class OrderMap extends BetterMap<StallId, DishOrderMap> {
   // Structure:
   // {
   //   stallid1: {
@@ -234,38 +198,20 @@ class Orders {
   //   },
   // }
   // ^ This structure is preferred, because it groups orders according to the different stalls for easy presentation, as well as when sending the orders to the respective stalls
-  Map<StallId, Map<OrderedDish, int>> value = {};
-
-  @override
-  bool operator ==(Object other) {
-    if (runtimeType != other.runtimeType) return false;
-    final Orders typedOther = other;
-    if (value == null) return typedOther.value == null;
-    if (value == null || value.length != typedOther.value.length) return false;
-    if (identical(value, typedOther.value)) return true;
-    for (StallId stallId in value.keys) {
-      if (!typedOther.value.containsKey(stallId) ||
-          !mapEquals(typedOther.value[stallId], value[stallId])) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  @override
-  int get hashCode => value.hashCode;
 }
 
-/// An [OrderedDish] contains the relevant [Dish] the user ordered, as well as the [DishOption]s that they have chosen
-class OrderedDish {
+class DishOrderMap extends BetterMap<DishOrder, int> {}
+
+/// An [DishOrder] contains the relevant [Dish] the user ordered, as well as the [DishOption]s that they have chosen
+class DishOrder {
   final Dish dish;
   final List<DishOption> enabledOptions;
-  const OrderedDish({this.dish, this.enabledOptions});
+  DishOrder({this.dish, this.enabledOptions});
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is OrderedDish &&
+        other is DishOrder &&
             this.dish == other.dish &&
             listEquals(this.enabledOptions, other.enabledOptions);
   }
@@ -276,6 +222,6 @@ class OrderedDish {
   /// Required for hero transition
   @override
   String toString() {
-    return 'OrderedDish($dish, $enabledOptions)';
+    return 'DishOrder($dish, $enabledOptions)';
   }
 }

@@ -15,7 +15,6 @@ class _OrderScreenState extends State<OrderScreen> {
     final orderSheetController = Provider.of<BottomSheetController>(context);
     orderSheetController.activeScrollController = scrollController;
     return CustomBottomSheet(
-      color: Theme.of(context).cardColor,
       controller: orderSheetController,
       body: (context) {
         return Stack(
@@ -43,14 +42,11 @@ class _OrderScreenState extends State<OrderScreen> {
                     Container(
                       constraints: BoxConstraints(
                         minHeight: MediaQuery.of(context).size.height -
-                            windowPadding.top -
-                            windowPadding.bottom,
+                            windowPadding.top +
+                            20,
                       ),
                       padding: const EdgeInsets.symmetric(vertical: 24),
                       child: ListOfOrders(),
-                    ),
-                    SizedBox(
-                      height: windowPadding.bottom,
                     ),
                   ],
                 ),
@@ -285,7 +281,7 @@ class ListOfOrders extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector<CartModel, Orders>(
+    return Selector<CartModel, OrderMap>(
       selector: (context, cart) => cart.orders,
       builder: (context, orders, child) {
         return Column(
@@ -296,13 +292,13 @@ class ListOfOrders extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
               child: Text(
-                orders.value.length == 0 ? 'No Orders' : 'Orders',
+                orders.length == 0 ? 'No OrderMap' : 'OrderMap',
                 style: Theme.of(context).textTheme.display3,
               ),
             ),
             Column(
               children: <Widget>[
-                if (orders.value.length == 0)
+                if (orders.length == 0)
                   FlatButton(
                     child: Text('Go back'),
                     onPressed: () {
@@ -310,7 +306,7 @@ class ListOfOrders extends StatelessWidget {
                     },
                   )
                 else
-                  for (var stallId in orders.value.keys)
+                  for (var stallId in orders.keys)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
@@ -328,18 +324,18 @@ class ListOfOrders extends StatelessWidget {
                             },
                           ),
                         ),
-                        for (var orderedDish in orders.value[stallId].keys)
+                        for (var dishOrder in orders[stallId].keys)
                           OrderDishRow(
                             stallId: stallId,
-                            quantity: orders.value[stallId][orderedDish],
-                            orderedDish: orderedDish,
+                            quantity: orders[stallId][dishOrder],
+                            dishOrder: dishOrder,
                           ),
                       ],
                     ),
               ],
             ),
             TotalCostWidget(orders: orders),
-            const SizedBox.shrink(),
+            OrderScreenFooter(),
           ],
         );
       },
@@ -347,15 +343,86 @@ class ListOfOrders extends StatelessWidget {
   }
 }
 
+class OrderScreenFooter extends StatelessWidget {
+  const OrderScreenFooter({Key key}) : super(key: key);
+
+  num _getPrice({
+    @required int quantity,
+    @required num unitCost,
+    @required List<DishOption> options,
+  }) {
+    assert(quantity != null);
+    assert(unitCost != null);
+    assert(options != null);
+    return quantity * options.fold(unitCost, (a, b) => a + b.addCost);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = Provider.of<CartModel>(context, listen: false);
+    return Footer(
+      buttons: [
+        FooterButton(
+          icon: const Icon(Icons.clear),
+          text: 'Cancel',
+          onTap: () => Navigator.pop(context),
+        ),
+        FooterButton(
+          icon: const Icon(Icons.check),
+          text: 'Pay',
+          color: Theme.of(context).accentColor,
+          colorBrightness: Brightness.dark,
+          onTap: () async {
+            if (cart.orders.isEmpty) return null;
+            Map<StallId, PaymentDetails> paymentMap = {};
+            // Collate prices for each stall
+            cart.orders.forEach((stallId, stallDishes) {
+              num price = 0;
+              stallDishes.forEach((dishOrder, quantity) {
+                price += _getPrice(
+                  quantity: quantity,
+                  unitCost: dishOrder.dish.unitPrice,
+                  options: dishOrder.enabledOptions,
+                );
+              });
+              paymentMap[stallId] = PaymentDetails(
+                stallId: stallId,
+                amount: price,
+              );
+            });
+            // Do payment for each stall seperately
+            final paymentCompletionList = await Future.wait(
+              paymentMap.values.map((details) {
+                return PaymentApi.pay(details: details);
+              }),
+            );
+            for (PaymentCompletionDetails details in paymentCompletionList) {
+              if (details.success) {
+                // Write to Firebase
+                cart.removeStall(
+                  context: context,
+                  stallId: details.stallId,
+                );
+              } else {
+                // Alert user
+              }
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
 class OrderDishRow extends StatelessWidget {
   final StallId stallId;
   final int quantity;
-  final OrderedDish orderedDish;
+  final DishOrder dishOrder;
   const OrderDishRow({
     Key key,
     @required this.stallId,
     @required this.quantity,
-    @required this.orderedDish,
+    @required this.dishOrder,
   }) : super(key: key);
 
   List<Widget> dishOptions(BuildContext context, List<DishOption> options) {
@@ -390,8 +457,8 @@ class OrderDishRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    num price = orderedDish.dish.unitPrice;
-    orderedDish.enabledOptions.forEach((option) {
+    num price = dishOrder.dish.unitPrice;
+    dishOrder.enabledOptions.forEach((option) {
       price += option.addCost;
     });
     price *= quantity;
@@ -414,8 +481,8 @@ class OrderDishRow extends StatelessWidget {
                   ),
                 ],
                 child: DishEditScreen(
-                  tag: orderedDish.toString(),
-                  dish: orderedDish.dish,
+                  tag: dishOrder.toString(),
+                  dish: dishOrder.dish,
                 ),
               );
             },
@@ -430,14 +497,14 @@ class OrderDishRow extends StatelessWidget {
                 width: 96,
                 height: 88,
                 child: Hero(
-                  tag: orderedDish.toString(),
+                  tag: dishOrder.toString(),
                   createRectTween: (a, b) {
                     return MaterialRectCenterArcTween(begin: a, end: b);
                   },
                   child: Material(
                     type: MaterialType.transparency,
                     child: DishImage(
-                      dish: orderedDish.dish,
+                      dish: dishOrder.dish,
                       animation: AlwaysStoppedAnimation(1),
                     ),
                   ),
@@ -452,7 +519,7 @@ class OrderDishRow extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(quantity.toString() + '× ' + orderedDish.dish.name),
+                    Text(quantity.toString() + '× ' + dishOrder.dish.name),
                     const SizedBox(
                       height: 1,
                     ),
@@ -463,14 +530,14 @@ class OrderDishRow extends StatelessWidget {
                     const SizedBox(
                       height: 4,
                     ),
-                    if (orderedDish.enabledOptions.isNotEmpty)
+                    if (dishOrder.enabledOptions.isNotEmpty)
                       SizedBox(
                         width: width - 192.1,
                         child: Wrap(
                           spacing: 5,
                           runSpacing: 3,
                           children:
-                              dishOptions(context, orderedDish.enabledOptions),
+                              dishOptions(context, dishOrder.enabledOptions),
                         ),
                       ),
                     const SizedBox(
@@ -488,13 +555,13 @@ class OrderDishRow extends StatelessWidget {
 }
 
 class TotalCostWidget extends StatelessWidget {
-  final Orders orders;
+  final OrderMap orders;
   const TotalCostWidget({Key key, @required this.orders}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     num cost = 0;
-    orders.value.forEach((stallId, stallOrders) {
+    orders.forEach((stallId, stallOrders) {
       stallOrders.forEach((dish, quantity) {
         num price = dish.dish.unitPrice;
         dish.enabledOptions.forEach((option) {

@@ -27,6 +27,7 @@ export 'main.dart';
 export 'settings.dart';
 export 'theme.dart';
 export 'src/dish_edit.dart';
+export 'src/payment.dart';
 export 'src/stall.dart';
 export 'src/stall_data.dart';
 export 'src/order.dart';

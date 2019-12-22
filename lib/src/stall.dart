@@ -296,9 +296,9 @@ class _DishImageState extends State<DishImage> {
                     final relevantDishes =
                         cart.getOrderedDishesFrom(widget.dish);
                     if (relevantDishes.isEmpty) return null;
-                    return relevantDishes.map((orderedDish) {
-                      return cart.orders.value[widget.dish.stallId]
-                          [orderedDish];
+                    return relevantDishes.map((dishOrder) {
+                      return cart.orders[widget.dish.stallId]
+                          [dishOrder];
                     }).reduce((a, b) => a + b);
                   },
                   builder: (context, quantity, child) {
@@ -373,22 +373,22 @@ class _DishImageState extends State<DishImage> {
           ),
         ScaleTransition(
           scale: anim,
-          child: Selector<CartModel, OrderedDish>(
+          child: Selector<CartModel, DishOrder>(
             selector: (context, cart) {
               // TODO: optimise this
               final relevantDishes = cart.getOrderedDishesFrom(widget.dish);
               if (relevantDishes.isEmpty) return null;
               return relevantDishes.first;
             },
-            builder: (context, orderedDish, child) {
+            builder: (context, dishOrder, child) {
               return AnimatedScale(
-                scale: orderedDish != null ? 1 : 0,
-                opacity: orderedDish != null ? 1 : .5,
+                scale: dishOrder != null ? 1 : 0,
+                opacity: dishOrder != null ? 1 : .5,
                 child: GestureDetector(
                   onTap: () {
                     cart.removeDish(
                       context: context,
-                      orderedDish: orderedDish,
+                      dishOrder: dishOrder,
                     );
                     _removeIsPressed.value = false;
                   },
@@ -408,7 +408,13 @@ class _DishImageState extends State<DishImage> {
                     return AnimatedContainer(
                       duration: value ? 100.milliseconds : 300.milliseconds,
                       decoration: BoxDecoration(
-                        color: value ? Colors.red[100] : Colors.red,
+                        color: value
+                            ? Color.lerp(
+                                Theme.of(context).scaffoldBackgroundColor,
+                                Color(0xFFf09e07),
+                                .4,
+                              )
+                            : Color(0xFFf09e07),
                         shape: BoxShape.circle,
                       ),
                       child: child,
@@ -438,7 +444,7 @@ class MenuGridItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final secondaryAnimation = ModalRoute.of(context).secondaryAnimation;
-    final _defaultOrderedDish = OrderedDish(
+    final _defaultOrderedDish = DishOrder(
       dish: dish,
       enabledOptions: [],
     );
@@ -461,7 +467,7 @@ class MenuGridItem extends StatelessWidget {
                 onTap: () {
                   cart.addDish(
                     context: context,
-                    orderedDish: _defaultOrderedDish,
+                    dishOrder: _defaultOrderedDish,
                   );
                 },
                 onLongPress: () {
