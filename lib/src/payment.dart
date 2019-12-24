@@ -6,7 +6,6 @@ class PaymentApi {
     @required PaymentDetails details,
   }) async {
     // TODO: Implement payment
-    await Future.delayed(1.seconds);
     return PaymentCompletionDetails._(
       stallId: details.stallId,
       success: true,

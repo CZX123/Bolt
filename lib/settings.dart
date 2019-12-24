@@ -79,7 +79,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: new Text("YES"),
               onPressed: () {
                 Navigator.of(context).pop();
-                signOutGoogle();
+                LoginApi.signOut(context);
               },
             ),
           ],
@@ -87,16 +87,4 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
-
-
-  void signOutGoogle() async {
-    await googleSignIn.signOut();
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool('success', false);
-    //success = false;
-    print("User Sign Out");
-    Navigator.pushReplacementNamed(context, '/1');           
-  }
- 
 }

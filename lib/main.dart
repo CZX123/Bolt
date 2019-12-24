@@ -189,13 +189,9 @@ class _BoltAppState extends State<BoltApp> {
                     builder: routes[_defaultPage],
                   );
                 }
-                if (routes.keys.contains(settings.name)) {
-                  return CrossFadePageRoute(
-                    builder: routes[settings.name],
-                  );
-                } else {
-                  throw Exception('Invalid route: ${settings.name}');
-                }
+                return CrossFadePageRoute(
+                  builder: routes[settings.name],
+                );
               },
             ),
           );
@@ -432,7 +428,7 @@ class _HomeState extends State<Home> {
                           );
                         },
                       ),
-                      OrderScreen(),
+                      OrderSheet(),
                       Align(
                         alignment: Alignment.bottomRight,
                         child: Padding(

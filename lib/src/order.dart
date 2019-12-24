@@ -1,57 +1,17 @@
 import '../library.dart';
 
-class OrderScreen extends StatefulWidget {
-  OrderScreen({Key key}) : super(key: key);
-
-  _OrderScreenState createState() => _OrderScreenState();
-}
-
-class _OrderScreenState extends State<OrderScreen> {
-  ScrollController scrollController = ScrollController();
+class OrderSheet extends StatelessWidget {
+  OrderSheet({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final windowPadding = Provider.of<EdgeInsets>(context);
     final orderSheetController = Provider.of<BottomSheetController>(context);
-    orderSheetController.activeScrollController = scrollController;
     return CustomBottomSheet(
       controller: orderSheetController,
       body: (context) {
         return Stack(
           children: <Widget>[
-            SingleChildScrollView(
-              controller: scrollController,
-              physics: NeverScrollableScrollPhysics(),
-              child: FadeTransition(
-                opacity: Tween<double>(
-                  begin: -0.25,
-                  end: 1.5,
-                ).animate(orderSheetController.altAnimation),
-                child: Column(
-                  children: <Widget>[
-                    ValueListenableBuilder(
-                      valueListenable: orderSheetController.altAnimation,
-                      builder: (context, value, child) {
-                        return SizedBox(
-                          height:
-                              value.clamp(0.0, 1.0) * (windowPadding.top - 20) +
-                                  20,
-                        );
-                      },
-                    ),
-                    Container(
-                      constraints: BoxConstraints(
-                        minHeight: MediaQuery.of(context).size.height -
-                            windowPadding.top +
-                            20,
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: ListOfOrders(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            OrderScreen(),
             OrderPreview(),
           ],
         );
@@ -276,69 +236,92 @@ class OrderPreviewThumbnail extends StatelessWidget {
   }
 }
 
-class ListOfOrders extends StatelessWidget {
-  const ListOfOrders({Key key}) : super(key: key);
+class OrderScreen extends StatefulWidget {
+  const OrderScreen({Key key}) : super(key: key);
+
+  @override
+  _OrderScreenState createState() => _OrderScreenState();
+}
+
+class _OrderScreenState extends State<OrderScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Selector<CartModel, OrderMap>(
-      selector: (context, cart) => cart.orders,
-      builder: (context, orders, child) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            const SizedBox.shrink(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+    final topPadding = Provider.of<EdgeInsets>(context).top;
+    final orderSheetController = Provider.of<BottomSheetController>(context);
+    orderSheetController.activeScrollController = _scrollController;
+    final orders = Provider.of<CartModel>(context).orders;
+    return FadeTransition(
+      opacity: Tween<double>(
+        begin: -0.25,
+        end: 1.5,
+      ).animate(orderSheetController.altAnimation),
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: NeverScrollableScrollPhysics(),
+        slivers: <Widget>[
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(24, 64 + topPadding, 24, 24),
+            sliver: SliverToBoxAdapter(
               child: Text(
-                orders.length == 0 ? 'No OrderMap' : 'OrderMap',
+                orders.length == 0 ? 'No Orders' : 'Orders',
                 style: Theme.of(context).textTheme.display3,
               ),
             ),
-            Column(
-              children: <Widget>[
-                if (orders.length == 0)
-                  FlatButton(
-                    child: Text('Go back'),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  )
-                else
-                  for (var stallId in orders.keys)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: <Widget>[
-                        Container(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                          child: Selector<StallDetailsMap, String>(
-                            selector: (context, stallDetailsMap) {
-                              return stallDetailsMap.value[stallId].name;
-                            },
-                            builder: (context, name, child) {
-                              return Text(
-                                name,
-                                style: Theme.of(context).textTheme.display2,
-                              );
-                            },
-                          ),
-                        ),
-                        for (var dishOrder in orders[stallId].keys)
-                          OrderDishRow(
-                            stallId: stallId,
-                            quantity: orders[stallId][dishOrder],
-                            dishOrder: dishOrder,
-                          ),
-                      ],
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final stallId = orders.keys.toList()[index];
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                      child: Selector<StallDetailsMap, String>(
+                        selector: (context, stallDetailsMap) {
+                          return stallDetailsMap.value[stallId].name;
+                        },
+                        builder: (context, name, child) {
+                          return Text(
+                            name,
+                            style: Theme.of(context).textTheme.display2,
+                          );
+                        },
+                      ),
                     ),
+                    for (var dishOrder in orders[stallId].keys)
+                      OrderDishRow(
+                        stallId: stallId,
+                        quantity: orders[stallId][dishOrder],
+                        dishOrder: dishOrder,
+                      ),
+                  ],
+                );
+              },
+              childCount: orders.length,
+            ),
+          ),
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: <Widget>[
+                TotalCostWidget(orders: orders),
+                OrderScreenFooter(),
               ],
             ),
-            TotalCostWidget(orders: orders),
-            OrderScreenFooter(),
-          ],
-        );
-      },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -363,8 +346,8 @@ class OrderScreenFooter extends StatelessWidget {
     return Footer(
       buttons: [
         FooterButton(
-          icon: const Icon(Icons.clear),
-          text: 'Cancel',
+          icon: const Icon(Icons.arrow_back),
+          text: 'Back',
           onTap: () => Navigator.pop(context),
         ),
         FooterButton(
@@ -572,10 +555,7 @@ class TotalCostWidget extends StatelessWidget {
       });
     });
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 16,
-      ),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

@@ -12,6 +12,7 @@ export 'package:flutter/physics.dart';
 export 'package:flutter/rendering.dart';
 export 'package:flutter/services.dart';
 
+export 'package:cloud_functions/cloud_functions.dart';
 export 'package:firebase_auth/firebase_auth.dart';
 export 'package:firebase_database/firebase_database.dart';
 export 'package:firebase_storage/firebase_storage.dart';
