@@ -1,11 +1,31 @@
 import '../library.dart';
 
+class OrderSheetController extends BottomSheetController {
+  OrderSheetController({
+    ScrollController activeScrollController,
+    BottomSheetPosition initialPosition = BottomSheetPosition.end,
+    double endCorrection = 0,
+    double start = 0,
+    @required double end,
+    SwipeArea swipeArea = SwipeArea.bottomSheet,
+    bool seamlessScrolling = false,
+  }) : super(
+          activeScrollController: activeScrollController,
+          initialPosition: initialPosition,
+          endCorrection: endCorrection,
+          start: start,
+          end: end,
+          swipeArea: swipeArea,
+          seamlessScrolling: seamlessScrolling,
+        );
+}
+
 class OrderSheet extends StatelessWidget {
   OrderSheet({Key key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final orderSheetController = Provider.of<BottomSheetController>(context);
+    final orderSheetController = Provider.of<OrderSheetController>(context);
     return CustomBottomSheet(
       controller: orderSheetController,
       body: (context) {
@@ -82,7 +102,7 @@ class OrderPreview extends StatelessWidget {
     );
     int previousLength = max(cart.orderThumbnails.length, 1);
     List<String> previousThumbnails = [];
-    final orderSheetController = Provider.of<BottomSheetController>(context);
+    final orderSheetController = Provider.of<OrderSheetController>(context);
     return ValueListenableBuilder(
       valueListenable: orderSheetController.altAnimation,
       builder: (context, value, child) {
@@ -255,7 +275,7 @@ class _OrderScreenState extends State<OrderScreen> {
   @override
   Widget build(BuildContext context) {
     final topPadding = Provider.of<EdgeInsets>(context).top;
-    final orderSheetController = Provider.of<BottomSheetController>(context);
+    final orderSheetController = Provider.of<OrderSheetController>(context);
     orderSheetController.activeScrollController = _scrollController;
     final orders = Provider.of<CartModel>(context).orders;
     return FadeTransition(
@@ -449,27 +469,14 @@ class OrderDishRow extends StatelessWidget {
       type: MaterialType.transparency,
       child: InkWell(
         onTap: () {
-          final windowPadding = Provider.of<EdgeInsets>(context);
-          final bottomSheetController =
-              Provider.of<BottomSheetController>(context);
-          Navigator.push(context, CrossFadePageRoute(
-            builder: (_) {
-              return MultiProvider(
-                providers: [
-                  Provider.value(
-                    value: windowPadding,
-                  ),
-                  ChangeNotifierProvider.value(
-                    value: bottomSheetController,
-                  ),
-                ],
-                child: DishEditScreen(
-                  tag: dishOrder.toString(),
-                  dish: dishOrder.dish,
-                ),
-              );
-            },
-          ));
+          Navigator.pushNamed(
+            context,
+            '/dishEdit',
+            arguments: DishEditScreenArguments(
+              tag: dishOrder.toString(),
+              dish: dishOrder.dish,
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 24, 8),

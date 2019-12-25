@@ -1,13 +1,14 @@
 import 'library.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
+    final windowPadding = Provider.of<EdgeInsets>(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -19,7 +20,8 @@ class _LoginPageState extends State<LoginPage> {
           ],
         ),
       ),
-      child: Center(
+      child: Padding(
+        padding: EdgeInsets.all(24) + windowPadding,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -29,10 +31,7 @@ class _LoginPageState extends State<LoginPage> {
               image: AssetImage('assets/icons/png/icon-white.png'),
               height: 140,
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 32),
-              child: const LoginButton(),
-            ),
+            const LoginButton(),
           ],
         ),
       ),
@@ -50,22 +49,27 @@ class LoginButton extends StatelessWidget {
       onPressed: () {
         LoginApi.signInWithGoogle(context);
       },
-      shape: CircleBorder(),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(69),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: 12,
+          vertical: 2,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Image(image: AssetImage('assets/google-logo.png'), height: 24),
+            Image(
+              image: AssetImage('assets/google-logo.png'),
+              height: 24,
+            ),
             const SizedBox(width: 16),
             Text(
               'Sign in with Google',
               style: TextStyle(
                 fontSize: 16,
-                // color: Color(0xFFF9B300),
               ),
             )
           ],
@@ -76,7 +80,7 @@ class LoginButton extends StatelessWidget {
 }
 
 class LoginApi {
-  static final FirebaseAuth _firebaseAuthentication = FirebaseAuth.instance;
+  static final FirebaseAuth firebaseAuthentication = FirebaseAuth.instance;
   static final GoogleSignIn googleSignIn = GoogleSignIn();
 
   static void _updatePrefs(FirebaseUser user) async {
@@ -102,7 +106,7 @@ class LoginApi {
       accessToken: googleSignInAuthentication.accessToken,
       idToken: googleSignInAuthentication.idToken,
     );
-    final authResult = await _firebaseAuthentication.signInWithCredential(
+    final authResult = await firebaseAuthentication.signInWithCredential(
       credential,
     );
     final user = authResult.user;
@@ -110,9 +114,9 @@ class LoginApi {
 
     assert(!user.isAnonymous);
     assert(await user.getIdToken() != null);
-    assert(user.uid == (await _firebaseAuthentication.currentUser()).uid);
+    assert(user.uid == (await firebaseAuthentication.currentUser()).uid);
 
-    Navigator.pushReplacementNamed(context, '/2');
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
   }
 
   static Future<void> signOut(BuildContext context) async {
@@ -124,6 +128,7 @@ class LoginApi {
     SharedPreferences.getInstance().then((prefs) {
       return prefs.setBool('success', false);
     });
-    Navigator.pushReplacementNamed(context, '/1');
+
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 }

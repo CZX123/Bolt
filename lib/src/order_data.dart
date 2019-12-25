@@ -36,7 +36,7 @@ class CartModel extends ChangeNotifier {
   }) {
     final stallId = dishOrder.dish.stallId;
     if (_orders.isEmpty) {
-      final orderSheetController = Provider.of<BottomSheetController>(context);
+      final orderSheetController = Provider.of<OrderSheetController>(context);
       // Animate order sheet if it is hidden
       if (orderSheetController.altAnimation.value < 0) {
         orderSheetController.animateTo(BottomSheetPosition.end);
@@ -77,7 +77,7 @@ class CartModel extends ChangeNotifier {
       // Hide order sheet if there are completely no orders
       if (_orders.isEmpty) {
         final orderSheetController =
-            Provider.of<BottomSheetController>(context, listen: false);
+            Provider.of<OrderSheetController>(context, listen: false);
         orderSheetController.animateTo(BottomSheetPosition.hidden);
       }
     }
@@ -97,7 +97,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<BottomSheetController>(context, listen: false);
+          Provider.of<OrderSheetController>(context, listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
     notifyListeners();
@@ -147,7 +147,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<BottomSheetController>(context, listen: false);
+          Provider.of<OrderSheetController>(context, listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
   }
@@ -232,7 +232,6 @@ class OrderApi {
     @required TimeOfDay orderTime,
     @required DishOrderMap dishes,
   }) async {
-
     final result = await _addOrderCallable.call(<String, dynamic>{
       'stallId': stallId.value,
       'orderTime': orderTime.toString(),

@@ -116,6 +116,12 @@ class DishEditingController extends ChangeNotifier {
   }
 }
 
+class DishEditScreenArguments {
+  final String tag;
+  final Dish dish;
+  const DishEditScreenArguments({this.tag, this.dish});
+}
+
 class DishEditScreen extends StatefulWidget {
   /// Required for the hero animation
   final String tag;
