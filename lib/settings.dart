@@ -7,6 +7,34 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool randomToggle = false;
 
+  void _showSignOutDialog(BuildContext mainContext) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Sign Out"),
+          content: Text("Are you sure you want to sign out?"),
+          actions: <Widget>[
+            FlatButton(
+              child: Text("No"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            FlatButton(
+              child: Text("Yes"),
+              onPressed: () {
+                // There needs to be a differentation between the 2 [BuildContext]s, because one does nont have the windowPadding and OrderSheetController providers.
+                Navigator.pop(context);
+                LoginApi.signOut(mainContext);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ThemeModel themeModel = Provider.of<ThemeModel>(context);
@@ -38,12 +66,10 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           ListTile(
-            title: Text(
-              'Log Out'
-            ),
+            title: Text('Sign Out'),
             onTap: () {
-              _showDialog();
-            }
+              _showSignOutDialog(context);
+            },
           ),
           SwitchListTile(
             title: Text('Random Toggle'),
@@ -58,45 +84,4 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
     );
   }
-
-  void _showDialog() {
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        
-        return AlertDialog(
-          title: new Text("Log Out"),
-          content: new Text("Are you sure?"),
-          actions: <Widget>[
-            new FlatButton(
-              child: new Text("NO"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            new FlatButton(
-              child: new Text("YES"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                signOutGoogle();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-
-  void signOutGoogle() async {
-    await googleSignIn.signOut();
-
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool('success', false);
-    //success = false;
-    print("User Sign Out");
-    Navigator.pushReplacementNamed(context, '/1');           
-  }
- 
 }

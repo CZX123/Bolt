@@ -50,9 +50,10 @@ class Stall extends StatelessWidget {
               );
             },
           ),
+          // Padding for the order sheet
           ValueListenableBuilder(
             valueListenable:
-                Provider.of<BottomSheetController>(context, listen: false)
+                Provider.of<OrderSheetController>(context, listen: false)
                     .altAnimation,
             builder: (context, value, child) {
               return SizedBox(
@@ -297,8 +298,7 @@ class _DishImageState extends State<DishImage> {
                         cart.getOrderedDishesFrom(widget.dish);
                     if (relevantDishes.isEmpty) return null;
                     return relevantDishes.map((dishOrder) {
-                      return cart.orders[widget.dish.stallId]
-                          [dishOrder];
+                      return cart.orders[widget.dish.stallId][dishOrder];
                     }).reduce((a, b) => a + b);
                   },
                   builder: (context, quantity, child) {
@@ -471,28 +471,12 @@ class MenuGridItem extends StatelessWidget {
                   );
                 },
                 onLongPress: () {
-                  final windowPadding = Provider.of<EdgeInsets>(context);
-                  final bottomSheetController =
-                      Provider.of<BottomSheetController>(context);
-                  Navigator.push(
+                  Navigator.pushNamed(
                     context,
-                    CrossFadePageRoute(
-                      builder: (context) {
-                        return MultiProvider(
-                          providers: [
-                            Provider.value(
-                              value: windowPadding,
-                            ),
-                            ChangeNotifierProvider.value(
-                              value: bottomSheetController,
-                            ),
-                          ],
-                          child: DishEditScreen(
-                            tag: dish.toString(),
-                            dish: dish,
-                          ),
-                        );
-                      },
+                    '/dishEdit',
+                    arguments: DishEditScreenArguments(
+                      tag: dish.toString(),
+                      dish: dish,
                     ),
                   );
                 },

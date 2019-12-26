@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import '../library.dart';
 
 /// The [CartModel] is equivalent to a shopping cart, and stores all the user orders.
@@ -38,7 +36,7 @@ class CartModel extends ChangeNotifier {
   }) {
     final stallId = dishOrder.dish.stallId;
     if (_orders.isEmpty) {
-      final orderSheetController = Provider.of<BottomSheetController>(context);
+      final orderSheetController = Provider.of<OrderSheetController>(context);
       // Animate order sheet if it is hidden
       if (orderSheetController.altAnimation.value < 0) {
         orderSheetController.animateTo(BottomSheetPosition.end);
@@ -48,13 +46,10 @@ class CartModel extends ChangeNotifier {
     /// If the [StallId] is not in the [_orders] or is null, set it to an empty map first
     _orders[stallId] ??= DishOrderMap();
 
-    /// If the [DishOrder] is already inside [_orders], then there is no need to update [_orderThumbnails], and only need to increase quantity by 1
+    /// Update quantity of the specified [DishOrder] in [_orders]
     if (_orders[stallId].containsKey(dishOrder)) {
       _orders[stallId][dishOrder] += quantity;
-    }
-
-    /// Else need to add the image of the dish to [_orderThumbnails]
-    else {
+    } else {
       _orders[stallId][dishOrder] = quantity;
     }
     notifyListeners();
@@ -82,7 +77,7 @@ class CartModel extends ChangeNotifier {
       // Hide order sheet if there are completely no orders
       if (_orders.isEmpty) {
         final orderSheetController =
-            Provider.of<BottomSheetController>(context, listen: false);
+            Provider.of<OrderSheetController>(context, listen: false);
         orderSheetController.animateTo(BottomSheetPosition.hidden);
       }
     }
@@ -102,7 +97,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<BottomSheetController>(context, listen: false);
+          Provider.of<OrderSheetController>(context, listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
     notifyListeners();
@@ -152,7 +147,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<BottomSheetController>(context, listen: false);
+          Provider.of<OrderSheetController>(context, listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
   }
@@ -223,5 +218,33 @@ class DishOrder {
   @override
   String toString() {
     return 'DishOrder($dish, $enabledOptions)';
+  }
+}
+
+class OrderApi {
+  final _addOrderCallable = CloudFunctions.instance.getHttpsCallable(
+    functionName: 'addOrder',
+  );
+
+  // TODO: Define a clear structure and API within Cloud Functions and link it to here
+  Future<void> addOrder({
+    @required StallId stallId,
+    @required TimeOfDay orderTime,
+    @required DishOrderMap dishes,
+  }) async {
+    final result = await _addOrderCallable.call(<String, dynamic>{
+      'stallId': stallId.value,
+      'orderTime': orderTime.toString(),
+      'dishes': dishes.entries.map((dishEntry) {
+        return <String, dynamic>{
+          'dishId': dishEntry.key.dish.id,
+          'options': dishEntry.key.enabledOptions.map((option) {
+            return option.id;
+          }).toList(),
+          'quantity': dishEntry.value,
+        };
+      }).toList(),
+    });
+    print(result.data);
   }
 }

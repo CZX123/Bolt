@@ -4,6 +4,7 @@ class ThemeModel with ChangeNotifier {
 
   bool _isDark = false;
   set isDark(bool value) {
+    if (_isDark == value) return;
     _isDark = value;
     _currentThemeData = themeList[value ? 1 : 0];
     SharedPreferences.getInstance().then((prefs) {

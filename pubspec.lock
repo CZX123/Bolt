@@ -36,6 +36,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.1.2"
+  cloud_functions:
+    dependency: "direct main"
+    description:
+      name: cloud_functions
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.4.1+6"
   collection:
     dependency: transitive
     description:
@@ -277,4 +284,4 @@ packages:
     version: "2.1.15"
 sdks:
   dart: ">=2.6.0-dev <3.0.0"
-  flutter: ">=1.5.0 <2.0.0"
+  flutter: ">=1.10.0 <2.0.0"
