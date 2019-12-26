@@ -1,7 +1,7 @@
 import 'library.dart';
 
 final FirebaseAuth _auth = FirebaseAuth.instance;
-final GoogleSignIn googleSignIn = GoogleSignIn();
+final GoogleSignIn googleSignIn = GoogleSignIn(hostedDomain: "student.hci.edu.sg");
 
 String userID;
 String name;
