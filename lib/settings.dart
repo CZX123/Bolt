@@ -7,9 +7,10 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool randomToggle = false;
 
-  void _showSignOutDialog(BuildContext mainContext) {
+  void _showSignOutDialog() {
     showDialog(
       context: context,
+      useRootNavigator: false,
       builder: (context) {
         return AlertDialog(
           title: Text("Sign Out"),
@@ -24,9 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
             FlatButton(
               child: Text("Yes"),
               onPressed: () {
-                // There needs to be a differentation between the 2 [BuildContext]s, because one does nont have the windowPadding and OrderSheetController providers.
-                Navigator.pop(context);
-                LoginApi.signOut(mainContext);
+                LoginApi.signOut(context);
               },
             ),
           ],
@@ -67,9 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           ListTile(
             title: Text('Sign Out'),
-            onTap: () {
-              _showSignOutDialog(context);
-            },
+            onTap: _showSignOutDialog,
           ),
           SwitchListTile(
             title: Text('Random Toggle'),

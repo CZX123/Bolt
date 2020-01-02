@@ -402,6 +402,11 @@ class OrderScreenFooter extends StatelessWidget {
             for (PaymentCompletionDetails details in paymentCompletionList) {
               if (details.success) {
                 // Write to Firebase
+                OrderApi.addOrder(
+                  stallId: details.stallId,
+                  time: TimeOfDay(hour: 10, minute: 0),
+                  dishes: cart.orders[details.stallId],
+                );
                 cart.removeStall(
                   context: context,
                   stallId: details.stallId,
