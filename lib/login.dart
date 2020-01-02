@@ -81,7 +81,7 @@ class LoginButton extends StatelessWidget {
 
 class LoginApi {
   static final FirebaseAuth firebaseAuthentication = FirebaseAuth.instance;
-  static final GoogleSignIn googleSignIn = GoogleSignIn();
+  static final GoogleSignIn googleSignIn = GoogleSignIn(hostedDomain: "student.hci.edu.sg");
 
   static void _updatePrefs(FirebaseUser user) async {
     final name = user.displayName;

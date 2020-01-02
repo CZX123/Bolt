@@ -24,7 +24,7 @@ class _SettingsPageState extends State<SettingsPage> {
             FlatButton(
               child: Text("Yes"),
               onPressed: () {
-                // There needs to be a differentation between the 2 [BuildContext]s, because one does nont have the windowPadding and OrderSheetController providers.
+                // There needs to be a differentation between the 2 [BuildContext]s, because one does not have the windowPadding and OrderSheetController providers.
                 Navigator.pop(context);
                 LoginApi.signOut(mainContext);
               },
