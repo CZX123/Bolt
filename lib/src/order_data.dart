@@ -222,19 +222,30 @@ class DishOrder {
 }
 
 class OrderApi {
-  final _addOrderCallable = CloudFunctions.instance.getHttpsCallable(
+  static final _addOrderCallable = CloudFunctions.instance.getHttpsCallable(
     functionName: 'addOrder',
   );
 
+  static String _formatTime(TimeOfDay time) {
+    String _addLeadingZeroIfNeeded(int value) {
+      if (value < 10) return '0$value';
+      return value.toString();
+    }
+
+    final String hourLabel = _addLeadingZeroIfNeeded(time.hour);
+    final String minuteLabel = _addLeadingZeroIfNeeded(time.minute);
+    return '$hourLabel:$minuteLabel';
+  }
+
   // TODO: Define a clear structure and API within Cloud Functions and link it to here
-  Future<void> addOrder({
+  static Future<void> addOrder({
     @required StallId stallId,
-    @required TimeOfDay orderTime,
+    @required TimeOfDay time,
     @required DishOrderMap dishes,
   }) async {
     final result = await _addOrderCallable.call(<String, dynamic>{
       'stallId': stallId.value,
-      'orderTime': orderTime.toString(),
+      'time': _formatTime(time),
       'dishes': dishes.entries.map((dishEntry) {
         return <String, dynamic>{
           'dishId': dishEntry.key.dish.id,

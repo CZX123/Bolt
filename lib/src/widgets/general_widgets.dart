@@ -72,7 +72,7 @@ class BetterMap<K, V> extends MapView<K, V> {
   @override
   bool operator ==(Object other) {
     if (runtimeType != other.runtimeType) return false;
-    final OrderMap typedOther = other;
+    final BetterMap typedOther = other;
     return mapEquals(this, typedOther);
   }
 
