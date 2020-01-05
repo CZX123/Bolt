@@ -40,19 +40,20 @@ class CurrentOrdersScreen extends StatelessWidget {
                       color: context.theme.colorScheme.onSurface,
                     ),
                   ),
-                  titlePadding: EdgeInsets.only(bottom: 2),
+                  titlePadding: EdgeInsets.only(bottom: 8),
                 ),
               ),
               SliverPadding(
-                padding: EdgeInsets.only(bottom: context.windowPadding.bottom),
+                padding:
+                    EdgeInsets.only(bottom: context.windowPadding.bottom + 8),
                 sliver: FirebaseSliverAnimatedList(
                   query: FirebaseDatabase.instance
                       .reference()
                       .child('users/${user.uid}/orders'),
                   itemBuilder: (context, snapshot, animation, index) {
                     return OrderCard(
+                      key: ValueKey(snapshot.key),
                       data: snapshot,
-                      uid: user.uid,
                       animation: animation,
                     );
                   },
@@ -115,12 +116,10 @@ class UserOrderAPI {
 /// An individual order
 class OrderCard extends StatefulWidget {
   final DataSnapshot data;
-  final String uid;
   final Animation<double> animation;
   const OrderCard({
     Key key,
     @required this.data,
-    @required this.uid,
     @required this.animation,
   }) : super(key: key);
 
@@ -130,8 +129,6 @@ class OrderCard extends StatefulWidget {
 
 class _OrderCardState extends State<OrderCard>
     with SingleTickerProviderStateMixin {
-  StreamSubscription<Event> _completionStreamSubscription;
-  StreamSubscription<Event> _userOrderStreamSubscription;
   List _dishes;
   StallId _stallId;
   TimeOfDay _time;
@@ -140,58 +137,39 @@ class _OrderCardState extends State<OrderCard>
   @override
   void initState() {
     super.initState();
+    _dishes = widget.data.value['dishes'];
     _stallId = StallId(widget.data.value['stallId']);
     _time = widget.data.value['time'].toString().toTime();
     _orderId = widget.data.value['orderId'];
-    final orderReference = FirebaseDatabase.instance
-        .reference()
-        .child('stallOrders')
-        .child(_stallId.value.toString())
-        .child(widget.data.value['time'])
-        .child('orders')
-        .child(_orderId.toString());
-    final userOrderReference = FirebaseDatabase.instance
-        .reference()
-        .child('users')
-        .child(widget.uid)
-        .child('orders')
-        .child('${_stallId.value}+$_orderId');
-    _completionStreamSubscription =
-        orderReference.child('completed').onValue.listen((event) {
-      if (event?.snapshot?.value != null) {
-        _status.value = event.snapshot.value ? 2 : 0;
-      }
-    });
-    _userOrderStreamSubscription = userOrderReference.onValue.listen((event) {
-      if (event?.snapshot?.value == null) return;
-      if (_dishes == null) {
-        setState(() {
-          _dishes = event.snapshot.value['dishes'];
-        });
-      }
-      if (event.snapshot.value['rejected']) {
-        _status.value = 1;
-      } else if (event.snapshot.value['collected']) {
-        _status.value = 3;
-      }
-    });
+    _updateStatus();
   }
 
   @override
-  void dispose() {
-    _completionStreamSubscription.cancel();
-    _userOrderStreamSubscription.cancel();
-    super.dispose();
+  void didUpdateWidget(OrderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateStatus();
   }
 
   /// 0: Pending
   /// 1: Rejected
   /// 2: Completed
   /// 3: Collected
-  final _status = ValueNotifier(0);
+  int _status;
+  void _updateStatus() {
+    if (widget.data.value['collected']) {
+      _status = 3;
+    } else if (widget.data.value['completed']) {
+      _status = 2;
+    } else if (widget.data.value['rejected']) {
+      _status = 1;
+    } else {
+      _status = 0;
+    }
+  }
+
   Color get _statusColor {
     final isDark = context.get<ThemeModel>().isDark;
-    switch (_status.value) {
+    switch (_status) {
       case 0:
         return isDark ? Colors.blueAccent : Colors.blue;
       case 1:
@@ -202,7 +180,7 @@ class _OrderCardState extends State<OrderCard>
   }
 
   IconData get _statusIconData {
-    switch (_status.value) {
+    switch (_status) {
       case 0:
         return Icons.access_time;
       case 1:
@@ -213,7 +191,7 @@ class _OrderCardState extends State<OrderCard>
   }
 
   String get _statusText {
-    switch (_status.value) {
+    switch (_status) {
       case 0:
         return 'Pending';
       case 1:
@@ -290,7 +268,6 @@ class _OrderCardState extends State<OrderCard>
 
   @override
   Widget build(BuildContext context) {
-    if (_dishes == null) return SizedBox.shrink();
     return SizeTransition(
       sizeFactor: CurvedAnimation(
         curve: Curves.fastOutSlowIn,
@@ -302,10 +279,7 @@ class _OrderCardState extends State<OrderCard>
           end: 1.0,
         )),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 8,
-            vertical: 8,
-          ),
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
           child: Material(
             color: context.theme.cardColor,
             shape: ContinuousRectangleBorder(
@@ -362,95 +336,93 @@ class _OrderCardState extends State<OrderCard>
                             'Status',
                             style: context.theme.textTheme.subtitle,
                           ),
-                          ValueListenableBuilder<int>(
-                            valueListenable: _status,
-                            builder: (context, value, child) {
-                              return CustomAnimatedSwitcher(
-                                child: AnimatedTheme(
-                                  key: ValueKey(value),
-                                  data: context.theme.copyWith(
-                                    indicatorColor: _statusColor,
-                                  ),
-                                  child: Builder(builder: (context) {
-                                    return Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: <Widget>[
-                                        Icon(
-                                          _statusIconData,
-                                          color: context.theme.indicatorColor,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _statusText,
-                                          style: context.theme.textTheme.subhead
-                                              .copyWith(
-                                            color: context.theme.indicatorColor,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }),
-                                ),
+                          AnimatedSwitcher(
+                            switchInCurve: Interval(.5, 1),
+                            switchOutCurve: Interval(.5, 1),
+                            duration: 240.milliseconds,
+                            layoutBuilder: (currentChild, previousChildren) {
+                              return Stack(
+                                children: <Widget>[
+                                  ...previousChildren,
+                                  if (currentChild != null) currentChild,
+                                ],
+                                alignment: Alignment.centerRight,
                               );
                             },
+                            child: AnimatedTheme(
+                              key: ValueKey(_status),
+                              data: context.theme.copyWith(
+                                indicatorColor: _statusColor,
+                              ),
+                              child: Builder(
+                                builder: (context) => Row(
+                                  children: <Widget>[
+                                    Icon(
+                                      _statusIconData,
+                                      color: context.theme.indicatorColor,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _statusText,
+                                      style: context.theme.textTheme.subhead
+                                          .copyWith(
+                                        color: context.theme.indicatorColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 AnimatedSize(
                   vsync: this,
                   duration: 240.milliseconds,
                   curve: Curves.fastOutSlowIn,
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: _status,
-                    builder: (context, value, child) {
-                      if (value == 1 || value == 3)
-                        return child;
-                      else
-                        return SizedBox.shrink();
-                    },
-                    child: Column(
-                      children: <Widget>[
-                        const SizedBox(height: 4),
-                        Divider(
-                          height: 1,
-                          thickness: 1,
-                        ),
-                        InkWell(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: <Widget>[
-                                Icon(
-                                  Icons.remove_circle,
-                                  color: context.theme.accentColor,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Remove',
-                                  style: TextStyle(
-                                    color: context.theme.accentColor,
-                                  ),
-                                ),
-                              ],
+                  child: _status == 1 || _status == 3
+                      ? Column(
+                          children: <Widget>[
+                            Divider(
+                              height: 1,
+                              thickness: 1,
                             ),
-                          ),
-                          onTap: () {
-                            UserOrderAPI.removeUserOrder(
-                              stallId: _stallId,
-                              orderId: _orderId,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                            InkWell(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: <Widget>[
+                                    Icon(
+                                      Icons.remove_circle,
+                                      color: context.theme.accentColor,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Remove',
+                                      style: TextStyle(
+                                        color: context.theme.accentColor,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              onTap: () {
+                                UserOrderAPI.removeUserOrder(
+                                  stallId: _stallId,
+                                  orderId: _orderId,
+                                );
+                              },
+                            ),
+                          ],
+                        )
+                      : SizedBox.shrink(),
                 ),
               ],
             ),

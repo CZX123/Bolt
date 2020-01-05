@@ -1,4 +1,5 @@
 import '../library.dart';
+import 'package:flutter/services.dart';
 
 num _getPrice({
   @required int quantity,
@@ -544,8 +545,7 @@ class _DishEditRowState extends State<DishEditRow> {
                     cursorOpacityAnimates: true,
                     textAlign: TextAlign.center,
                     scrollPadding: EdgeInsets.zero,
-                    style:
-                        context.theme.textTheme.subhead.copyWith(height: 1.3),
+                    style: context.theme.textTheme.subhead,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       WhitelistingTextInputFormatter.digitsOnly,

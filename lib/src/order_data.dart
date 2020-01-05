@@ -253,6 +253,7 @@ class OrderApi {
     @required DishOrderMap dishes,
     @required num price,
   }) async {
+    final token = await FirebaseMessaging().getToken();
     final result = await _addOrderCallable.call(<String, dynamic>{
       'stallId': stallId.value,
       'time': _formatTime(time),
@@ -266,6 +267,7 @@ class OrderApi {
         };
       }).toList(),
       'price': price,
+      'deviceToken': token,
     });
     return result.data['success'];
   }

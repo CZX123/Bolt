@@ -80,7 +80,7 @@ TextTheme textTheme = const TextTheme(
     fontWeight: FontWeight.w700,
   ),
   subhead: const TextStyle(
-    height: 1.2,
+    height: 1.3,
   ),
   title: const TextStyle(
     height: 1.2,
@@ -135,6 +135,9 @@ const TextTheme lightThemeText = TextTheme(
 );
 
 const TextTheme darkThemeText = TextTheme(
+  display1: TextStyle(
+    color: Colors.white,
+  ),
   display2: TextStyle(
     color: Colors.white,
   ),

@@ -1,4 +1,5 @@
 import 'library.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui' as ui;
 
 void main() async {
@@ -336,10 +337,52 @@ class _MainScreenState extends State<MainScreen> {
   int _pageIndex = 0;
   StallIdList _stallIdList;
 
+  Future<void> _showNotificationDialog(Map<String, dynamic> message) {
+    return showCustomDialog<void>(
+      context: context,
+      dialog: AlertDialog(
+        backgroundColor: context.theme.canvasColor,
+        title: Text(message['notification']['title']),
+        content: Text(
+          message['notification']['body'],
+          style: context.theme.textTheme.body1,
+        ),
+        actions: <Widget>[
+          FlatButton(
+            color: context.theme.accentColor,
+            highlightColor: Colors.white12,
+            splashColor: Colors.white12,
+            child: Text(
+              'Ok',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     mainPageController.addListener(pageListener);
+    FirebaseMessaging().configure(
+      onMessage: _showNotificationDialog,
+      onResume: (_) {
+        _changeScreen(true);
+        return null;
+      },
+      onLaunch: (_) {
+        _changeScreen(true);
+        return null;
+      }
+    );
   }
 
   void pageListener() {

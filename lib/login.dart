@@ -123,7 +123,7 @@ class LoginApi {
     GoogleSignInAccount googleSignInAccount;
     try {
       googleSignInAccount = await googleSignIn.signIn();
-    } on PlatformException {
+    } catch (e) {
       _showError(context);
       return;
     }
