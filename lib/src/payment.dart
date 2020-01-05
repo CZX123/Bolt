@@ -8,6 +8,7 @@ class PaymentApi {
     // TODO: Implement payment
     return PaymentCompletionDetails._(
       stallId: details.stallId,
+      amount: details.amount,
       success: true,
     );
   }
@@ -25,6 +26,7 @@ class PaymentDetails {
 
 class PaymentCompletionDetails {
   final StallId stallId;
+  final num amount;
   final bool success;
-  const PaymentCompletionDetails._({this.stallId, this.success});
+  const PaymentCompletionDetails._({this.amount, this.stallId, this.success});
 }

@@ -12,7 +12,6 @@ class Stall extends StatelessWidget {
   }) : super(key: key);
 
   Widget build(BuildContext context) {
-    EdgeInsets windowPadding = Provider.of<EdgeInsets>(context);
     return SingleChildScrollView(
       controller: scrollController,
       physics: NeverScrollableScrollPhysics(),
@@ -23,7 +22,7 @@ class Stall extends StatelessWidget {
             valueListenable: animation,
             builder: (context, value, child) {
               return SizedBox(
-                height: value.clamp(0.0, 1.0) * windowPadding.top,
+                height: value.clamp(0.0, 1.0) * context.windowPadding.top,
               );
             },
           ),
@@ -37,8 +36,8 @@ class Stall extends StatelessWidget {
             builder: (context, stallMenu, child) {
               // TODO: Update each dish within the stall menu individually
               return Padding(
-                padding:
-                    EdgeInsets.fromLTRB(8, 8, 8, 16 + windowPadding.bottom),
+                padding: EdgeInsets.fromLTRB(
+                    8, 8, 8, 16 + context.windowPadding.bottom),
                 child: Wrap(
                   children: <Widget>[
                     for (var dish in stallMenu.menu)
@@ -53,8 +52,7 @@ class Stall extends StatelessWidget {
           // Padding for the order sheet
           ValueListenableBuilder(
             valueListenable:
-                Provider.of<OrderSheetController>(context, listen: false)
-                    .altAnimation,
+                context.get<OrderSheetController>(listen: false).altAnimation,
             builder: (context, value, child) {
               return SizedBox(
                 height: value < 0 ? 0 : 66.0 + 12,
@@ -97,11 +95,10 @@ class _StallImageState extends State<StallImage> {
         double height;
         double y = 0;
         if (value < 0)
-          height = widget.defaultAnimation.value *
-                  MediaQuery.of(context).size.height +
-              32;
+          height =
+              widget.defaultAnimation.value * context.windowSize.height + 32;
         else {
-          final double width = MediaQuery.of(context).size.width;
+          final double width = context.windowSize.width;
           height = width / 2560 * 1600 + 32;
           y = value * -(width / 2560 * 1600 + 32) / 2;
         }
@@ -120,7 +117,7 @@ class _StallImageState extends State<StallImage> {
         animation: widget.pageController,
         builder: (context, child) {
           final offset = widget.pageController.offset;
-          final width = MediaQuery.of(context).size.width;
+          final width = context.windowSize.width;
           final imageOffset =
               (offset / width - widget.index).clamp(-1.0, 1.0) / 2;
           bool clipping = true;
@@ -147,11 +144,11 @@ class _StallImageState extends State<StallImage> {
           );
         },
         child: OverflowBox(
-          minWidth: MediaQuery.of(context).size.width,
+          minWidth: context.windowSize.width,
           maxWidth: double.infinity,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: Theme.of(context).dividerColor,
+              color: context.theme.dividerColor,
             ),
             child: Selector<StallDetailsMap, String>(
               selector: (context, stallDetailsMap) {
@@ -246,7 +243,7 @@ class _DishImageState extends State<DishImage> {
 
   @override
   Widget build(BuildContext context) {
-    final cart = Provider.of<CartModel>(context, listen: false);
+    final cart = context.get<CartModel>(listen: false);
     final anim = widget.animation?.drive(
           Tween(begin: 1.0, end: 0.0),
         ) ??
@@ -260,7 +257,7 @@ class _DishImageState extends State<DishImage> {
             valueListenable: _isPressed,
             builder: (context, value, child) {
               return Material(
-                color: Theme.of(context).dividerColor,
+                color: context.theme.dividerColor,
                 elevation: value ? 8 : 0,
                 shape: ContinuousRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -410,11 +407,11 @@ class _DishImageState extends State<DishImage> {
                       decoration: BoxDecoration(
                         color: value
                             ? Color.lerp(
-                                Theme.of(context).scaffoldBackgroundColor,
-                                Color(0xFFf09e07),
+                                context.theme.scaffoldBackgroundColor,
+                                context.theme.accentColor,
                                 .4,
                               )
-                            : Color(0xFFf09e07),
+                            : context.theme.accentColor,
                         shape: BoxShape.circle,
                       ),
                       child: child,
@@ -448,8 +445,8 @@ class MenuGridItem extends StatelessWidget {
       dish: dish,
       enabledOptions: [],
     );
-    final cart = Provider.of<CartModel>(context, listen: false);
-    final cardWidth = (MediaQuery.of(context).size.width - 16.0) / 2;
+    final cart = context.get<CartModel>(listen: false);
+    final cardWidth = (context.windowSize.width - 16.0) / 2;
     return Column(
       children: <Widget>[
         SizedBox(
@@ -488,7 +485,7 @@ class MenuGridItem extends StatelessWidget {
         Text(dish.name),
         Text(
           '\$${dish.unitPrice.toStringAsFixed(2)}',
-          style: Theme.of(context).textTheme.subtitle,
+          style: context.theme.textTheme.subtitle,
         ),
         const SizedBox(height: 8),
       ],

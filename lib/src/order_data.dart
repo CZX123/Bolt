@@ -12,7 +12,17 @@ import '../library.dart';
 /// - [removeDish], which also takes in the [StallId] and [DishOrder], and only removes one unit of the [DishOrder] specified
 /// - [replaceDish], used in the [DishEditScreen], to replace all instances of a specific [Dish] present with a new list of [OrderedDishWithQuantity].
 class CartModel extends ChangeNotifier {
-  CartModel();
+  /// All available timings are (for now) hardcoded and same for every stall.
+  final timings = [
+    10.am,
+    10.30.am,
+    11.am,
+    11.30.am,
+    12.pm,
+    12.30.pm,
+    1.pm
+  ];
+  TimeOfDay selectedTime;
 
   final _orders = OrderMap();
   OrderMap get orders => _orders;
@@ -36,7 +46,7 @@ class CartModel extends ChangeNotifier {
   }) {
     final stallId = dishOrder.dish.stallId;
     if (_orders.isEmpty) {
-      final orderSheetController = Provider.of<OrderSheetController>(context);
+      final orderSheetController = context.get<OrderSheetController>();
       // Animate order sheet if it is hidden
       if (orderSheetController.altAnimation.value < 0) {
         orderSheetController.animateTo(BottomSheetPosition.end);
@@ -77,7 +87,7 @@ class CartModel extends ChangeNotifier {
       // Hide order sheet if there are completely no orders
       if (_orders.isEmpty) {
         final orderSheetController =
-            Provider.of<OrderSheetController>(context, listen: false);
+            context.get<OrderSheetController>(listen: false);
         orderSheetController.animateTo(BottomSheetPosition.hidden);
       }
     }
@@ -97,7 +107,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<OrderSheetController>(context, listen: false);
+          context.get<OrderSheetController>(listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
     notifyListeners();
@@ -147,7 +157,7 @@ class CartModel extends ChangeNotifier {
     if (_orders.isEmpty) {
       // Hide order sheet
       final orderSheetController =
-          Provider.of<OrderSheetController>(context, listen: false);
+          context.get<OrderSheetController>(listen: false);
       orderSheetController.animateTo(BottomSheetPosition.hidden);
     }
   }
@@ -237,25 +247,26 @@ class OrderApi {
     return '$hourLabel:$minuteLabel';
   }
 
-  // TODO: Define a clear structure and API within Cloud Functions and link it to here
-  static Future<void> addOrder({
+  static Future<bool> addOrder({
     @required StallId stallId,
     @required TimeOfDay time,
     @required DishOrderMap dishes,
+    @required num price,
   }) async {
     final result = await _addOrderCallable.call(<String, dynamic>{
       'stallId': stallId.value,
       'time': _formatTime(time),
       'dishes': dishes.entries.map((dishEntry) {
         return <String, dynamic>{
-          'dishId': dishEntry.key.dish.id,
+          'id': dishEntry.key.dish.id,
           'options': dishEntry.key.enabledOptions.map((option) {
             return option.id;
           }).toList(),
           'quantity': dishEntry.value,
         };
       }).toList(),
+      'price': price,
     });
-    print(result.data);
+    return result.data['success'];
   }
 }

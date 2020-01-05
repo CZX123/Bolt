@@ -25,7 +25,7 @@ class OrderSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderSheetController = Provider.of<OrderSheetController>(context);
+    final orderSheetController = context.get<OrderSheetController>();
     return CustomBottomSheet(
       controller: orderSheetController,
       body: (context) {
@@ -95,14 +95,11 @@ class OrderPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool rebuildToggle = false;
-    final windowPadding = Provider.of<EdgeInsets>(context);
-    final cart = Provider.of<CartModel>(
-      context,
-      listen: false,
-    );
+    final windowPadding = context.windowPadding;
+    final cart = context.get<CartModel>(listen: false);
     int previousLength = max(cart.orderThumbnails.length, 1);
     List<String> previousThumbnails = [];
-    final orderSheetController = Provider.of<OrderSheetController>(context);
+    final orderSheetController = context.get<OrderSheetController>();
     return ValueListenableBuilder(
       valueListenable: orderSheetController.altAnimation,
       builder: (context, value, child) {
@@ -128,7 +125,7 @@ class OrderPreview extends StatelessWidget {
                       height: 4,
                       width: 24,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).dividerColor,
+                        color: context.theme.dividerColor,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -225,7 +222,7 @@ class OrderPreviewThumbnail extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 9, 4, 9),
       child: Material(
-        color: Theme.of(context).dividerColor,
+        color: context.theme.dividerColor,
         shape: ContinuousRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
@@ -274,10 +271,10 @@ class _OrderScreenState extends State<OrderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = Provider.of<EdgeInsets>(context).top;
-    final orderSheetController = Provider.of<OrderSheetController>(context);
+    final topPadding = context.windowPadding.top;
+    final orderSheetController = context.get<OrderSheetController>();
     orderSheetController.activeScrollController = _scrollController;
-    final orders = Provider.of<CartModel>(context).orders;
+    final orders = context.get<CartModel>().orders;
     return FadeTransition(
       opacity: Tween<double>(
         begin: -0.25,
@@ -292,7 +289,7 @@ class _OrderScreenState extends State<OrderScreen> {
             sliver: SliverToBoxAdapter(
               child: Text(
                 orders.length == 0 ? 'No Orders' : 'Orders',
-                style: Theme.of(context).textTheme.display3,
+                style: context.theme.textTheme.display3,
               ),
             ),
           ),
@@ -312,7 +309,7 @@ class _OrderScreenState extends State<OrderScreen> {
                         builder: (context, name, child) {
                           return Text(
                             name,
-                            style: Theme.of(context).textTheme.display2,
+                            style: context.theme.textTheme.display1,
                           );
                         },
                       ),
@@ -335,6 +332,7 @@ class _OrderScreenState extends State<OrderScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
+                TimeSelectionWidget(),
                 TotalCostWidget(orders: orders),
                 OrderScreenFooter(),
               ],
@@ -342,82 +340,6 @@ class _OrderScreenState extends State<OrderScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class OrderScreenFooter extends StatelessWidget {
-  const OrderScreenFooter({Key key}) : super(key: key);
-
-  num _getPrice({
-    @required int quantity,
-    @required num unitCost,
-    @required List<DishOption> options,
-  }) {
-    assert(quantity != null);
-    assert(unitCost != null);
-    assert(options != null);
-    return quantity * options.fold(unitCost, (a, b) => a + b.addCost);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cart = Provider.of<CartModel>(context, listen: false);
-    return Footer(
-      buttons: [
-        FooterButton(
-          icon: const Icon(Icons.arrow_back),
-          text: 'Back',
-          onTap: () => Navigator.pop(context),
-        ),
-        FooterButton(
-          icon: const Icon(Icons.check),
-          text: 'Pay',
-          color: Theme.of(context).accentColor,
-          colorBrightness: Brightness.dark,
-          onTap: () async {
-            if (cart.orders.isEmpty) return null;
-            Map<StallId, PaymentDetails> paymentMap = {};
-            // Collate prices for each stall
-            cart.orders.forEach((stallId, stallDishes) {
-              num price = 0;
-              stallDishes.forEach((dishOrder, quantity) {
-                price += _getPrice(
-                  quantity: quantity,
-                  unitCost: dishOrder.dish.unitPrice,
-                  options: dishOrder.enabledOptions,
-                );
-              });
-              paymentMap[stallId] = PaymentDetails(
-                stallId: stallId,
-                amount: price,
-              );
-            });
-            // Do payment for each stall seperately
-            final paymentCompletionList = await Future.wait(
-              paymentMap.values.map((details) {
-                return PaymentApi.pay(details: details);
-              }),
-            );
-            for (PaymentCompletionDetails details in paymentCompletionList) {
-              if (details.success) {
-                // Write to Firebase
-                OrderApi.addOrder(
-                  stallId: details.stallId,
-                  time: TimeOfDay(hour: 10, minute: 0),
-                  dishes: cart.orders[details.stallId],
-                );
-                cart.removeStall(
-                  context: context,
-                  stallId: details.stallId,
-                );
-              } else {
-                // Alert user
-              }
-            }
-          },
-        ),
-      ],
     );
   }
 }
@@ -451,12 +373,11 @@ class OrderDishRow extends StatelessWidget {
         ),
         child: Text(
           option.name,
-          style: Theme.of(context).textTheme.subtitle.copyWith(
-                color:
-                    Colors.primaries[option.colourCode].computeLuminance() < .6
-                        ? Colors.white
-                        : Colors.black87,
-              ),
+          style: context.theme.textTheme.subtitle.copyWith(
+            color: Colors.primaries[option.colourCode].computeLuminance() < .6
+                ? Colors.white
+                : Colors.black87,
+          ),
         ),
       );
     }).toList();
@@ -464,7 +385,7 @@ class OrderDishRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final width = context.windowSize.width;
     num price = dishOrder.dish.unitPrice;
     dishOrder.enabledOptions.forEach((option) {
       price += option.addCost;
@@ -520,7 +441,7 @@ class OrderDishRow extends StatelessWidget {
                     ),
                     Text(
                       '\$${price.toStringAsFixed(2)}',
-                      style: Theme.of(context).textTheme.subtitle,
+                      style: context.theme.textTheme.subtitle,
                     ),
                     const SizedBox(
                       height: 4,
@@ -544,6 +465,82 @@ class OrderDishRow extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class TimeSelectionWidget extends StatefulWidget {
+  const TimeSelectionWidget({Key key}) : super(key: key);
+
+  @override
+  _TimeSelectionWidgetState createState() => _TimeSelectionWidgetState();
+}
+
+class _TimeSelectionWidgetState extends State<TimeSelectionWidget> {
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.get<CartModel>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Collection Time',
+            style: context.theme.textTheme.subtitle.copyWith(
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(
+            height: 4,
+          ),
+          AnimatedTheme(
+            data: context.theme.copyWith(
+              canvasColor: context.get<ThemeModel>().isDark
+                  ? Color(0xFF222d3d)
+                  : Colors.grey[50],
+            ),
+            child: Builder(builder: (context) {
+              return RaisedButton(
+                padding: EdgeInsets.zero,
+                color: context.theme.canvasColor,
+                highlightElevation: 6,
+                onPressed: () {},
+                child: DropdownButton<TimeOfDay>(
+                  icon: Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(Icons.arrow_drop_down),
+                  ),
+                  items: cart.timings.map((time) {
+                    return DropdownMenuItem(
+                      value: time,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 12),
+                        child: Text(time.format(context)),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (time) {
+                    setState(() {
+                      cart.selectedTime = time;
+                    });
+                  },
+                  underline: const SizedBox.shrink(),
+                  style: context.theme.textTheme.subhead,
+                  hint: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Text(
+                      'Select collection time',
+                      style: context.theme.textTheme.subtitle,
+                    ),
+                  ),
+                  value: cart.selectedTime,
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
@@ -573,19 +570,133 @@ class TotalCostWidget extends StatelessWidget {
         children: <Widget>[
           Text(
             'Total Cost',
-            style: Theme.of(context).textTheme.subtitle.copyWith(
-                  fontSize: 15,
-                ),
+            style: context.theme.textTheme.subtitle.copyWith(
+              fontSize: 15,
+            ),
           ),
           const SizedBox(
             height: 4,
           ),
           Text(
             '\$${cost.toStringAsFixed(2)}',
-            style: Theme.of(context).textTheme.display3,
+            style: context.theme.textTheme.display3,
           ),
         ],
       ),
+    );
+  }
+}
+
+class OrderScreenFooter extends StatelessWidget {
+  const OrderScreenFooter({Key key}) : super(key: key);
+
+  void _showErrorDialog(BuildContext context, String error) {
+    showCustomDialog(
+      context: context,
+      dialog: AlertDialog(
+        backgroundColor: context.theme.canvasColor,
+        title: Text('Error'),
+        content: Text(
+          error,
+          style: context.theme.textTheme.body1,
+        ),
+        actions: <Widget>[
+          FlatButton(
+            color: context.theme.accentColor,
+            highlightColor: Colors.white12,
+            splashColor: Colors.white12,
+            child: Text(
+              'Ok',
+              style: TextStyle(
+                color: Colors.white,
+              ),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
+  num _getPrice({
+    @required int quantity,
+    @required num unitCost,
+    @required List<DishOption> options,
+  }) {
+    assert(quantity != null);
+    assert(unitCost != null);
+    assert(options != null);
+    return quantity * options.fold(unitCost, (a, b) => a + b.addCost);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cart = context.get<CartModel>(listen: false);
+    return Footer(
+      buttons: [
+        FooterButton(
+          icon: const Icon(Icons.arrow_back),
+          text: 'Back',
+          onTap: () => Navigator.pop(context),
+        ),
+        FooterButton(
+          icon: const Icon(Icons.check),
+          text: 'Pay',
+          color: context.theme.accentColor,
+          colorBrightness: Brightness.dark,
+          onTap: () async {
+            if (cart.orders.isEmpty || cart.selectedTime == null) return null;
+            Map<StallId, PaymentDetails> paymentMap = {};
+            // Collate prices for each stall
+            cart.orders.forEach((stallId, stallDishes) {
+              num price = 0;
+              stallDishes.forEach((dishOrder, quantity) {
+                price += _getPrice(
+                  quantity: quantity,
+                  unitCost: dishOrder.dish.unitPrice,
+                  options: dishOrder.enabledOptions,
+                );
+              });
+              paymentMap[stallId] = PaymentDetails(
+                stallId: stallId,
+                amount: price,
+              );
+            });
+            // Do payment for each stall seperately
+            final paymentCompletionList = await Future.wait(
+              paymentMap.values.map((details) {
+                return PaymentApi.pay(details: details);
+              }),
+            );
+            final addOrderResults = await Future.wait(
+              paymentCompletionList.map((details) {
+                if (!details.success) return Future.value(false);
+                return OrderApi.addOrder(
+                  stallId: details.stallId,
+                  price: details.amount,
+                  time: cart.selectedTime,
+                  dishes: cart.orders[details.stallId],
+                );
+              }),
+            );
+            assert(addOrderResults.length == paymentCompletionList.length);
+            for (int i = 0; i < addOrderResults.length; i++) {
+              if (addOrderResults[i]) {
+                cart.removeStall(
+                  context: context,
+                  stallId: paymentCompletionList[i].stallId,
+                );
+              } else {
+                // todo: Do not show multiple times if there are multiple errors
+                _showErrorDialog(context, 'Not enough balance!');
+              }
+            }
+          },
+        ),
+      ],
     );
   }
 }

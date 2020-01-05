@@ -51,16 +51,13 @@ final List<ThemeData> themeList = [
     primaryColor: Color(0xFF54D2D2),
     primaryColorLight: Color(0xFF081F44),
     primaryColorDark: Color(0xFF081F44),
-    accentColor: Color(0xFFFFC800),
+    accentColor: Color(0xFF69593d),
     // scaffoldBackgroundColor: Color(0xFF000A14),
-    scaffoldBackgroundColor: Color(0xFF1a2330),
-    canvasColor: Color(0xFF020F1C),
-    cardColor: Color(0xFF031230),
-    appBarTheme: AppBarTheme(
-      color: Color(0xFF0A1826),
-    ),
+    scaffoldBackgroundColor: Color(0xFF0e131a),
+    canvasColor: Color(0xFF1a2330),
+    cardColor: Color(0xFF222d3d),
     textTheme: textTheme.merge(darkThemeText),
-    toggleableActiveColor: Color(0xFFFFC800),
+    toggleableActiveColor: Color(0xFF69593d),
     buttonTheme: ButtonThemeData(
       minWidth: 64,
       height: 24,
@@ -80,6 +77,10 @@ TextTheme textTheme = const TextTheme(
   body2: const TextStyle(
     height: 1.2,
     fontSize: 14,
+    fontWeight: FontWeight.w700,
+  ),
+  subhead: const TextStyle(
+    height: 1.2,
   ),
   title: const TextStyle(
     height: 1.2,
@@ -95,12 +96,12 @@ TextTheme textTheme = const TextTheme(
   ),
   display1: const TextStyle(
     height: 1.2,
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: FontWeight.w700,
   ),
   display2: const TextStyle(
     height: 1.2,
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: FontWeight.w700,
   ),
   display3: const TextStyle(
@@ -116,6 +117,9 @@ TextTheme textTheme = const TextTheme(
 );
 
 const TextTheme lightThemeText = TextTheme(
+  display1: TextStyle(
+    color: Colors.black87,
+  ),
   display2: TextStyle(
     color: Colors.black87,
   ),

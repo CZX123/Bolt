@@ -365,7 +365,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _windowHeight = MediaQuery.of(context).size.height;
+    _windowHeight = context.windowSize.height;
   }
 
   @override
@@ -430,7 +430,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
                   boxShadow: kElevationToShadow[6],
                 ),
                 child: PhysicalShape(
-                  color: widget.color ?? Theme.of(context).canvasColor,
+                  color: widget.color ?? context.theme.canvasColor,
                   clipper: ShapeBorderClipper(
                     shape: shapeTween.transform(value.clamp(0.0, 1.0)),
                   ),
@@ -441,7 +441,7 @@ class _CustomBottomSheetState extends State<CustomBottomSheet>
             },
             child: SizedBox(
               height: _windowHeight,
-              width: MediaQuery.of(context).size.width,
+              width: context.windowSize.width,
               child: NotificationListener(
                 onNotification: (notification) {
                   if (notification is ScrollUpdateNotification &&

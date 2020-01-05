@@ -49,7 +49,7 @@ class _CustomImageState extends State<CustomImage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_init) {
-      _dirPath = Provider.of<Directory>(context)?.path;
+      _dirPath = context.get<Directory>()?.path;
       if (_dirPath == null) return;
       final filePath = widget.path.replaceAll('/', '-');
       final file = File('$_dirPath/$filePath');

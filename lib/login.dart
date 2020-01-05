@@ -8,7 +8,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
-    final windowPadding = Provider.of<EdgeInsets>(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -21,7 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.all(24) + windowPadding,
+        padding: EdgeInsets.all(24) + context.windowPadding,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -46,6 +45,8 @@ class LoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return RaisedButton(
       color: Colors.white,
+      highlightColor: Colors.black12,
+      splashColor: Colors.black12,
       onPressed: () {
         LoginApi.signInWithGoogle(context);
       },
@@ -69,6 +70,7 @@ class LoginButton extends StatelessWidget {
             Text(
               'Sign in with Google',
               style: TextStyle(
+                color: Colors.black54,
                 fontSize: 16,
               ),
             )
@@ -79,19 +81,42 @@ class LoginButton extends StatelessWidget {
   }
 }
 
+class User extends ValueNotifier<FirebaseUser> {
+  User(FirebaseUser value) : super(value);
+}
+
 class LoginApi {
   static final FirebaseAuth firebaseAuthentication = FirebaseAuth.instance;
-  static final GoogleSignIn googleSignIn = GoogleSignIn(hostedDomain: "student.hci.edu.sg");
+  static final GoogleSignIn googleSignIn =
+      GoogleSignIn(hostedDomain: "student.hci.edu.sg");
+  static final HttpsCallable _addUserCallable =
+      CloudFunctions.instance.getHttpsCallable(
+    functionName: 'addUser',
+  );
 
-  static void _updatePrefs(FirebaseUser user) async {
-    final name = user.displayName;
-    final email = user.email;
-    final imageUrl = user.photoUrl;
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setString('name', name);
-    prefs.setString('email', email);
-    prefs.setString('imageUrl', imageUrl);
-    prefs.setBool('success', true);
+  static void _showError(BuildContext context) {
+    showCustomDialog(
+      context: context,
+      dialog: AlertDialog(
+        title: Text('Error'),
+        content: Text('Could not sign in'),
+        actions: <Widget>[
+          FlatButton(
+            child: Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Adds a user to firebase. Returns whether the operation was successful
+  static Future<bool> _addUser() async {
+    try {
+      return (await _addUserCallable.call()).data['success'];
+    } catch (e) {
+      return false;
+    }
   }
 
   static Future<void> signInWithGoogle(BuildContext context) async {
@@ -99,6 +124,7 @@ class LoginApi {
     try {
       googleSignInAccount = await googleSignIn.signIn();
     } on PlatformException {
+      _showError(context);
       return;
     }
     final googleSignInAuthentication = await googleSignInAccount.authentication;
@@ -110,25 +136,28 @@ class LoginApi {
       credential,
     );
     final user = authResult.user;
-    _updatePrefs(user);
-
-    assert(!user.isAnonymous);
-    assert(await user.getIdToken() != null);
-    assert(user.uid == (await firebaseAuthentication.currentUser()).uid);
-
-    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    final success = await _addUser();
+    if (success) {
+      assert(!user.isAnonymous);
+      assert(await user.getIdToken() != null);
+      assert(user.uid == (await firebaseAuthentication.currentUser()).uid);
+      context.get<User>().value = user;
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } else {
+      _showError(context);
+    }
   }
 
   static Future<void> signOut(BuildContext context) async {
     try {
-      await googleSignIn.signOut();
-    } on PlatformException {
+      await Future.wait([
+        googleSignIn.signOut(),
+        firebaseAuthentication.signOut(),
+      ]);
+      context.get<User>().value = null;
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
       return;
     }
-    SharedPreferences.getInstance().then((prefs) {
-      return prefs.setBool('success', false);
-    });
-
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 }

@@ -11,6 +11,7 @@ Future<T> showCustomDialog<T>({
     barrierDismissible: barrierDismissible,
     transitionDuration: 200.milliseconds,
     barrierColor: Colors.black.withOpacity(0.5),
+    useRootNavigator: false,
     transitionBuilder: (
       BuildContext context,
       Animation<double> animation,

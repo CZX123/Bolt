@@ -1,9 +1,6 @@
-import 'dart:collection';
-
 import '../../library.dart';
 
 // Insert commonly used widgets here
-
 class Footer extends StatelessWidget {
   final List<FooterButton> buttons;
   const Footer({Key key, @required this.buttons})
@@ -13,7 +10,7 @@ class Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = Provider.of<EdgeInsets>(context).bottom;
+    final bottomPadding = context.windowPadding.bottom;
     return Container(
       height: 80 + bottomPadding,
       padding: EdgeInsets.fromLTRB(24, 16, 0, 16 + bottomPadding),
@@ -25,7 +22,8 @@ class Footer extends StatelessWidget {
                 padding: const EdgeInsets.only(right: 24),
                 child: RaisedButton(
                   elevation: 0,
-                  color: button.color ?? Theme.of(context).cardColor,
+                  highlightElevation: 6,
+                  color: button.color ?? context.theme.cardColor,
                   colorBrightness: button.colorBrightness,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -61,25 +59,4 @@ class FooterButton {
   })
   // Either icon or text needs to be present
   : assert(icon != null || text != null);
-}
-
-/// A better implementation of [Map] that uses [mapEquals] for its [==] comparisons.
-///
-/// To use this when creating a new map, instead of calling `Map<K, V> map = {}`, use `Map<K, V> map = BetterMap()`.
-class BetterMap<K, V> extends MapView<K, V> {
-  BetterMap([Map<K, V> map]) : super(map ?? {});
-
-  @override
-  bool operator ==(Object other) {
-    if (runtimeType != other.runtimeType) return false;
-    final BetterMap typedOther = other;
-    return mapEquals(this, typedOther);
-  }
-
-  @override
-  int get hashCode {
-    return hashList(entries.map((entry) {
-      return hashValues(entry.key, entry.value);
-    }));
-  }
 }

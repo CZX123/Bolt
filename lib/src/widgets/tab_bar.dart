@@ -120,7 +120,7 @@ class _CustomTabBarState extends State<CustomTabBar> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _windowWidth = MediaQuery.of(context).size.width;
+    _windowWidth = context.windowSize.width;
     updateValues();
   }
 
@@ -158,88 +158,119 @@ class _CustomTabBarState extends State<CustomTabBar> {
       maintainInteractivity: true,
       maintainSemantics: true,
       maintainState: true,
-      child: SizedBox(
-        height: 56,
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: EdgeInsets.only(left: _frontPadding, right: _backPadding),
-          scrollDirection: Axis.horizontal,
-          child: Stack(
-            children: <Widget>[
-              if (_tabWidths.length > 0)
-                Align(
-                  alignment: Alignment.bottomLeft,
-                  child: AnimatedBuilder(
-                    animation: widget.pageController,
-                    builder: (context, child) {
-                      final offset = widget.pageController.offset;
-                      return Transform.translate(
-                        offset: Offset(
-                          getIndicatorPosition(offset / _windowWidth),
-                          0,
-                        ),
-                        child: PhysicalShape(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          clipper: ShapeBorderClipper(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(1),
+      child: Stack(
+        children: <Widget>[
+          SizedBox(
+            height: 56,
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding:
+                  EdgeInsets.only(left: _frontPadding, right: _backPadding),
+              scrollDirection: Axis.horizontal,
+              child: Stack(
+                children: <Widget>[
+                  if (_tabWidths.length > 0)
+                    Align(
+                      alignment: Alignment.bottomLeft,
+                      child: AnimatedBuilder(
+                        animation: widget.pageController,
+                        builder: (context, child) {
+                          final offset = widget.pageController.offset;
+                          return Transform.translate(
+                            offset: Offset(
+                              getIndicatorPosition(offset / _windowWidth),
+                              0,
+                            ),
+                            child: PhysicalShape(
+                              color: context.theme.colorScheme.onSurface,
+                              clipper: ShapeBorderClipper(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(1),
+                                ),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: SizedBox(
+                                height: 2,
+                                width: getIndicatorWidth(offset / _windowWidth),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      for (var i = 0; i < widget.stallIdList.length; i++)
+                        InkWell(
+                          key: _tabKeys[i],
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            height: 56,
+                            alignment: Alignment.center,
+                            child: Selector<StallDetailsMap, String>(
+                              selector: (context, stallDetailsMap) {
+                                return stallDetailsMap
+                                    .value[widget.stallIdList[i]].name;
+                              },
+                              builder: (context, name, child) {
+                                // TODO: If name changes also update tabWidth and positions
+                                return Text(name);
+                              },
                             ),
                           ),
-                          clipBehavior: Clip.antiAlias,
-                          child: SizedBox(
-                            height: 2,
-                            width: getIndicatorWidth(offset / _windowWidth),
-                          ),
+                          onTap: () {
+                            isListening = false;
+                            _scrollController.animateTo(
+                              getScrollPosition(i.toDouble()),
+                              duration: 400.milliseconds,
+                              curve: Curves.fastOutSlowIn,
+                            );
+                            widget.pageController
+                                .animateToPage(
+                              i,
+                              duration: 400.milliseconds,
+                              curve: Curves.fastOutSlowIn,
+                            )
+                                .then((_) {
+                              isListening = true;
+                              updateScrollPosition();
+                            });
+                          },
                         ),
-                      );
-                    },
+                    ],
                   ),
-                ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  for (var i = 0; i < widget.stallIdList.length; i++)
-                    InkWell(
-                      key: _tabKeys[i],
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        height: 56,
-                        alignment: Alignment.center,
-                        child: Selector<StallDetailsMap, String>(
-                          selector: (context, stallDetailsMap) {
-                            return stallDetailsMap
-                                .value[widget.stallIdList[i]].name;
-                          },
-                          builder: (context, name, child) {
-                            // TODO: If name changes also update tabWidth and positions
-                            return Text(name);
-                          },
-                        ),
-                      ),
-                      onTap: () {
-                        isListening = false;
-                        _scrollController.animateTo(
-                          getScrollPosition(i.toDouble()),
-                          duration: 400.milliseconds,
-                          curve: Curves.fastOutSlowIn,
-                        );
-                        widget.pageController
-                            .animateToPage(
-                          i,
-                          duration: 400.milliseconds,
-                          curve: Curves.fastOutSlowIn,
-                        )
-                            .then((_) {
-                          isListening = true;
-                          updateScrollPosition();
-                        });
-                      },
-                    ),
                 ],
               ),
-            ],
+            ),
           ),
-        ),
+          Positioned(
+            left: -3,
+            top: 0,
+            height: 56,
+            width: 56,
+            child: AnimatedBuilder(
+              animation: _scrollController,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(
+                      max(
+                        min(_frontPadding - 50 - _scrollController.offset, 0),
+                        -50,
+                      ),
+                      0),
+                  child: child,
+                );
+              },
+              child: IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

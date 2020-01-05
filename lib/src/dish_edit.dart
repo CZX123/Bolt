@@ -174,7 +174,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_init) {
-      final orders = Provider.of<CartModel>(context, listen: false).orders;
+      final orders = context.get<CartModel>(listen: false).orders;
       _controller.initDishes(orders);
       _init = true;
     }
@@ -188,7 +188,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final topPadding = Provider.of<EdgeInsets>(context).top;
+    final topPadding = context.windowPadding.top;
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).unfocus();
@@ -258,10 +258,9 @@ class _DishEditScreenState extends State<DishEditScreen> {
                         builder: (context, name, child) {
                           return Text(
                             name,
-                            style:
-                                Theme.of(context).textTheme.display1.copyWith(
-                                      color: Theme.of(context).hintColor,
-                                    ),
+                            style: context.theme.textTheme.body2.copyWith(
+                              color: context.theme.hintColor,
+                            ),
                           );
                         },
                       ),
@@ -273,7 +272,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
                       ),
                       child: Text(
                         widget.dish.name,
-                        style: Theme.of(context).textTheme.display2,
+                        style: context.theme.textTheme.display1,
                       ),
                     ),
                     const SizedBox(
@@ -302,7 +301,7 @@ class _DishEditScreenState extends State<DishEditScreen> {
                 //   child: Center(
                 //     child: RaisedButton(
                 //       elevation: 0,
-                //       color: Theme.of(context).cardColor,
+                //       color: context.theme.cardColor,
                 //       child: Row(
                 //         mainAxisSize: MainAxisSize.min,
                 //         children: <Widget>[
@@ -322,7 +321,8 @@ class _DishEditScreenState extends State<DishEditScreen> {
                   child: Center(
                     child: RaisedButton(
                       elevation: 0,
-                      color: Theme.of(context).cardColor,
+                      highlightElevation: 4,
+                      color: context.theme.cardColor,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
@@ -373,16 +373,16 @@ class DishEditFooter extends StatelessWidget {
         FooterButton(
           icon: const Icon(Icons.check),
           text: 'Save',
-          color: Theme.of(context).accentColor,
+          color: context.theme.accentColor,
           colorBrightness: Brightness.dark,
           onTap: () {
             final controller =
-                Provider.of<DishEditingController>(context, listen: false);
-            Provider.of<CartModel>(context, listen: false).replaceDish(
-              context: context,
-              dish: controller.dish,
-              newDishes: controller.dishes,
-            );
+                context.get<DishEditingController>(listen: false);
+            context.get<CartModel>(listen: false).replaceDish(
+                  context: context,
+                  dish: controller.dish,
+                  newDishes: controller.dishes,
+                );
             Navigator.pop(context);
           },
         ),
@@ -430,13 +430,12 @@ class _DishEditRowState extends State<DishEditRow> {
             ),
             child: Text(
               option.name,
-              style: Theme.of(context).textTheme.subtitle.copyWith(
-                    color:
-                        Colors.primaries[option.colourCode].computeLuminance() <
-                                .6
-                            ? Colors.white
-                            : Colors.black87,
-                  ),
+              style: context.theme.textTheme.subtitle.copyWith(
+                color:
+                    Colors.primaries[option.colourCode].computeLuminance() < .6
+                        ? Colors.white
+                        : Colors.black87,
+              ),
             ),
           ),
         ),
@@ -448,7 +447,7 @@ class _DishEditRowState extends State<DishEditRow> {
     showCustomDialog(
       context: context,
       dialog: DishOptionDialog(
-        controller: Provider.of<DishEditingController>(context),
+        controller: context.get<DishEditingController>(),
         index: widget.index,
         dishEditDetails: widget.dishEditDetails,
       ),
@@ -488,8 +487,8 @@ class _DishEditRowState extends State<DishEditRow> {
 
   @override
   Widget build(BuildContext context) {
-    // final width = MediaQuery.of(context).size.width;
-    final controller = Provider.of<DishEditingController>(context);
+    // final width = context.windowSize.width;
+    final controller = context.get<DishEditingController>();
     final isLast = widget.index == controller.dishes.length - 1;
     return Material(
       type: MaterialType.transparency,
@@ -503,7 +502,7 @@ class _DishEditRowState extends State<DishEditRow> {
                     width: 1,
                   )
                 : BorderSide(
-                    color: Theme.of(context).dividerColor,
+                    color: context.theme.dividerColor,
                     width: 1,
                   ),
           ),
@@ -540,15 +539,13 @@ class _DishEditRowState extends State<DishEditRow> {
                     controller: _textController,
                     focusNode: _focusNode,
                     enableSuggestions: false,
-                    cursorColor: Theme.of(context).accentColor,
-                    backgroundCursorColor: Theme.of(context).cardColor,
+                    cursorColor: context.theme.accentColor,
+                    backgroundCursorColor: context.theme.cardColor,
                     cursorOpacityAnimates: true,
                     textAlign: TextAlign.center,
                     scrollPadding: EdgeInsets.zero,
-                    style: Theme.of(context)
-                        .textTheme
-                        .subhead
-                        .copyWith(height: 1.3),
+                    style:
+                        context.theme.textTheme.subhead.copyWith(height: 1.3),
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       WhitelistingTextInputFormatter.digitsOnly,
@@ -599,7 +596,7 @@ class _DishEditRowState extends State<DishEditRow> {
                         child: Text(
                           '\$' + price.toStringAsFixed(2),
                           key: ValueKey(price),
-                          style: Theme.of(context).textTheme.subtitle,
+                          style: context.theme.textTheme.subtitle,
                         ),
                       );
                     },
@@ -622,7 +619,7 @@ class _DishEditRowState extends State<DishEditRow> {
                             shape: ContinuousRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            color: Theme.of(context).cardColor,
+                            color: context.theme.cardColor,
                             clipBehavior: Clip.antiAlias,
                             child: InkWell(
                               child: Padding(
@@ -637,14 +634,11 @@ class _DishEditRowState extends State<DishEditRow> {
                                     const SizedBox(width: 3),
                                     Text(
                                       'Add Options',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .subtitle
+                                      style: context.theme.textTheme.subtitle
                                           .copyWith(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .onSurface,
-                                          ),
+                                        color:
+                                            context.theme.colorScheme.onSurface,
+                                      ),
                                     ),
                                     const SizedBox(width: 2),
                                   ],
@@ -677,7 +671,7 @@ class _DishEditRowState extends State<DishEditRow> {
                     child: Icon(
                       Icons.delete,
                       size: 22,
-                      color: Theme.of(context).hintColor,
+                      color: context.theme.hintColor,
                     ),
                   ),
                   onTap: () {
@@ -752,7 +746,7 @@ class _DishOptionDialogState extends State<DishOptionDialog> {
                 widget.dishEditDetails.quantity.toString() +
                     '× ' +
                     widget.controller.dish.name,
-                style: Theme.of(context).textTheme.subhead,
+                style: context.theme.textTheme.subhead,
               ),
               const SizedBox(
                 height: 1,
@@ -761,7 +755,7 @@ class _DishOptionDialogState extends State<DishOptionDialog> {
                 child: Text(
                   '\$${price.toStringAsFixed(2)}',
                   key: ValueKey(price),
-                  style: Theme.of(context).textTheme.subtitle,
+                  style: context.theme.textTheme.subtitle,
                 ),
               ),
             ],
@@ -861,15 +855,15 @@ class _OptionRowState extends State<OptionRow> {
                   children: <Widget>[
                     Text(
                       widget.option.name,
-                      style: Theme.of(context).textTheme.subtitle.copyWith(
-                            color: _textColor,
-                          ),
+                      style: context.theme.textTheme.subtitle.copyWith(
+                        color: _textColor,
+                      ),
                     ),
                     Text(
                       '\$' + widget.option.addCost.toStringAsFixed(2),
-                      style: Theme.of(context).textTheme.subtitle.copyWith(
-                            color: _textColor,
-                          ),
+                      style: context.theme.textTheme.subtitle.copyWith(
+                        color: _textColor,
+                      ),
                     ),
                   ],
                 ),

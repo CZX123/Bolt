@@ -3,10 +3,9 @@ import 'library.dart';
 class LoadingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final windowPadding = Provider.of<EdgeInsets>(context);
-    final double width = MediaQuery.of(context).size.width;
+    final double width = context.windowSize.width;
     if (width == 0) return SizedBox.shrink();
-    final bool isDark = Provider.of<ThemeModel>(context).isDark;
+    final bool isDark = context.get<ThemeModel>().isDark;
     Color baseColor =
         isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.14);
     Color highlightColor =
@@ -30,7 +29,7 @@ class LoadingScreen extends StatelessWidget {
               boxShadow: kElevationToShadow[6],
             ),
             child: PhysicalShape(
-              color: Color(Theme.of(context).scaffoldBackgroundColor.value),
+              color: Color(context.theme.scaffoldBackgroundColor.value),
               clipper: ShapeBorderClipper(
                 shape: ContinuousRectangleBorder(
                   borderRadius: BorderRadius.only(
@@ -180,7 +179,8 @@ class LoadingScreen extends StatelessWidget {
         Align(
           alignment: Alignment.bottomRight,
           child: Padding(
-            padding: EdgeInsets.fromLTRB(8, 0, 8, windowPadding.bottom + 8),
+            padding:
+                EdgeInsets.fromLTRB(8, 0, 8, context.windowPadding.bottom + 8),
             child: NoInternetWidget(),
           ),
         ),
@@ -194,9 +194,9 @@ class NoInternetWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDisconnected = Provider.of<FirebaseConnectionState>(context) ==
+    final isDisconnected = context.get<FirebaseConnectionState>() ==
         FirebaseConnectionState.disconnected;
-    final dataIsNull = Provider.of<StallIdList>(context) == null;
+    final dataIsNull = context.get<StallIdList>() == null;
     return IgnorePointer(
       child: AnimatedOpacity(
         duration: 200.milliseconds,
