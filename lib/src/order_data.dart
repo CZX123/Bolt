@@ -14,13 +14,8 @@ import '../library.dart';
 class CartModel extends ChangeNotifier {
   /// All available timings are (for now) hardcoded and same for every stall.
   final timings = [
-    10.am,
-    10.30.am,
-    11.am,
-    11.30.am,
-    12.pm,
-    12.30.pm,
-    1.pm
+    9.am,
+    9.30.am,
   ];
   TimeOfDay selectedTime;
 
